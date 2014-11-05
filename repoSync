@@ -1,0 +1,88 @@
+#!/usr/bin/python -u
+
+import sys
+from optparse import OptionParser
+import ConfigParser
+from lib.master import Master
+from lib.apt import AptManager
+from lib.yum import YUMManager
+from lib.zypper import ZypperManager
+
+oparser = OptionParser(description='Repo Mirror Sync')
+
+oparser.add_option('-v', '--verbose',
+                   dest='verbose', default=False, action='store_true')
+
+(options, args) = oparser.parse_args()
+
+config_file = ConfigParser.ConfigParser()
+
+try:
+    # config_file.read( '/etc/repo/mirror.conf' )
+    config_file.read('mirror.conf')
+except ConfigParser.Error as e:
+    print 'Error reading config file:'
+    print e
+    sys.exit(1)
+
+try:
+    master = Master(
+        config_file.get('mirror', 'host'), config_file.get('mirror', 'name'),
+        config_file.get('mirror', 'psk'), config_file.get('mirror', 'proxy'))
+except ConfigParser.Error as e:
+    print 'Error retreiving hostname, psk, and/or proxy from config file'
+    sys.exit(1)
+
+try:
+    root_dir = config_file.get('mirror', 'root_dir')
+except ConfigParser.Error as e:
+    print 'Error retreiving root_dir from config file'
+    sys.exit(1)
+
+master.syncStart()
+
+mirror = master.getMirrorInfo()
+print 'Last Sync was from %s to %s' % (mirror['last_sync_start'],
+                                       mirror['last_sync_complete'])
+
+print 'Retreiving Repo list....'
+repo_list = []
+for repo in master.getRepoList():
+    repo_list.append(master.getRepo(repo))
+
+for repo in repo_list:
+    print 'Processing repo "%s"' % repo['description']
+    if repo['manager_type'] == 'apt':
+        manager = AptManager('%s/apt/%s' % (root_dir, repo['release_type']),
+                             repo['version'], 'main', repo['description'],
+                             mirror['description'])
+    elif repo['manager_type'] == 'yum':
+        manager = YUMManager('%s/apt/%s' % (root_dir, repo['release_type']),
+                             repo['version'], 'main', repo['description'],
+                             mirror['description'])
+    elif repo['manager_type'] == 'zypper':
+        manager = ZypperManager('%s/apt/%s' % (root_dir, repo['release_type']),
+                                repo['version'], 'main', repo['description'],
+                                mirror['description'])
+    else:
+        print 'Unknown Manager Type "%s", skipped.' % repo['manager_type']
+        continue
+
+    for package_id in repo['package_list']:
+        package = master.getPackage(package_id, repo['release_type'])
+        print '  Checking Package "%s"' % package['name']
+        for version_id in package['version_list']:
+            version = master.getPackageVersion(
+                version_id, repo['manager_type'])
+
+            if not manager.checkFile(version['file']):
+                print '    Retrieving "%s"...' % version['file']
+                wrkfile = master.getFile(version['file_url'])
+                manager.loadFile(version['file'], wrkfile)
+            manager.addEntry(
+                version['file'], version['type'], version['arch'])
+    print '  Writing Metadata...'
+    manager.writeMetadata()
+
+master.syncComplete()
+print 'Done!'
