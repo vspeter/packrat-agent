@@ -12,20 +12,27 @@ see https://wiki.debian.org/RepositoryFormat
 
 class AptManager(LocalRepoManager):
     def __init__(self, *args, **kargs):
-        super(AptManager).__init__(*args, **kargs)
+        super(AptManager, self).__init__(*args, **kargs)
         self.file_list = []
         self.arch_list = ('i386', 'amd64')
         self.entry_list = {}
-        for arch in self.arch_list:
-            self.entry_list[arch] = {}
         self._loadFiles()
 
-    def addEntry(self, type, arch, filename):
+    def addEntry(self, type, arch, filename, distro, distro_version):
         if type != 'deb':
             print 'WARNING! New entry not a deb, skipping...'
             return
 
-        deb_path = 'pool/%s/%s' % (filename[0:3], filename)
+        if distro != 'debian':
+            print 'WARNING! Not a debian distro, skipping...'
+            return
+
+        if distro not in self.entry_list:
+            self.entry_list[distro_version] = {}
+            for arch in self.arch_list:
+                self.entry_list[distro_version][arch] = {}
+
+        deb_path = 'pool/%s/%s' % (filename[0:5], filename)
         full_deb_path = '%s/%s' % (self.root_dir, deb_path)
         deb = Deb(full_deb_path)
         (field_order, fields) = deb.getControlFields()
@@ -37,16 +44,16 @@ class AptManager(LocalRepoManager):
             return
 
         if fields['Architecture'] == 'i386':
-            arch_list = ('i386')
+            arch_list = ('i386',)
         elif fields['Architecture'] == 'amd64':
-            arch_list = ('amd64')
+            arch_list = ('amd64',)
         elif fields['Architecture'] == 'all':
             arch_list = ('i386', 'amd64')
 
         size = os.path.getsize(full_deb_path)
         (sha1, sha256, md5) = hashFile(full_deb_path)
         for arch in arch_list:
-            self.entry_list[arch][filename] = (
+            self.entry_list[distro_version][arch][filename] = (
                 deb_path, sha1, sha256, md5, size, field_order, fields)
 
     def _loadFiles(self):
@@ -54,26 +61,25 @@ class AptManager(LocalRepoManager):
         for path in glob.glob('%s/*/*' % self.root_dir):
             self.file_list.append(path.split('/')[-1])
 
-    def checkFile(self, file_name):
+    def checkFile(self, file_name, arch):
         return file_name in self.file_list
 
-    def loadFile(self, file_name, temp_file):
-        dir_path = '%s/pool/%s/' % (self.root_dir, file_name[0:3])
+    def loadFile(self, file_name, temp_file, arch):
+        dir_path = '%s/pool/%s/' % (self.root_dir, file_name[0:5])
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
         file_path = '%s%s' % (dir_path, file_name)
         os.rename(temp_file, file_path)
 
-    def _writeArchMetadata(self, arch, file_hashes, file_sizes):
-        dir_path = '%s/dists/%s/%s/binary-%s' % (
-            self.root_dir, self.distro, self.component, arch)
+    def _writeArchMetadata(self, base_path, distro, arch, file_hashes,
+                           file_sizes):
+        dir_path = '%s/%s/binary-%s' % (base_path, self.component, arch)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
         file_path = '%s/binary-%s/Release' % (self.component, arch)
-        full_path = '%s/dists/%s/%s' % (
-            self.root_dir, self.distro, file_path)
+        full_path = '%s/%s' % (base_path, file_path)
         wrk = open(full_path, 'w')
         wrk.write('Component: %s\n' % self.component)
         wrk.write('Origin: Rubicon\n')
@@ -86,12 +92,11 @@ class AptManager(LocalRepoManager):
         file_sizes[file_path] = os.path.getsize(full_path)
 
         file_path = '%s/binary-%s/Packages' % (self.component, arch)
-        full_path = '%s/dists/%s/%s' % (
-            self.root_dir, self.distro, file_path)
+        full_path = '%s/%s' % (base_path, file_path)
         wrk = open(full_path, 'w')
-        for filename in self.entry_list[arch]:
+        for filename in self.entry_list[distro][arch]:
             (deb_path, sha1, sha256, md5, size, field_order,
-             fields) = self.entry_list[arch][filename]
+             fields) = self.entry_list[distro][arch][filename]
 
             for field in field_order:
                 if field in ('Filename', 'Size', 'SHA256', 'SHA1',
@@ -114,33 +119,40 @@ class AptManager(LocalRepoManager):
     def writeMetadata(self):
         file_hashes = {}
         file_sizes = {}
-        for arch in self.arch_list:
-            self._writeArchMetadata(arch, file_hashes, file_sizes)
 
-        wrk = open('%s/dists/%s/Release' % (self.root_dir, self.distro), 'w')
-        wrk.write('Origin: Rubicon\n')
-        wrk.write('Label: %s\n' % self.repo_description)
-        wrk.write('Codename: %s\n' % self.distro)
-        wrk.write('Date: %s\n' %
-                  datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S UTC'))
-        wrk.write('Architectures: %s\n' % ' '.join(self.arch_list))
-        wrk.write('Components: %s\n' % self.component)
-        wrk.write('Description: %s of %s\n' %
-                  (self.repo_description, self.mirror_description))
+        for distro in self.entry_list:
+            base_path = '%s/dists/%s' % (self.root_dir, distro)
+            if not os.path.exists(base_path):
+                os.makedirs(base_path)
 
-        wrk.write('MD5Sum:\n')
-        for file in file_hashes:
-            wrk.write('%s %s %s\n' %
-                      (file_hashes[file][2], file_sizes[file], file))
+            for arch in self.arch_list:
+                self._writeArchMetadata(base_path, distro, arch, file_hashes,
+                                        file_sizes)
 
-        wrk.write('SHA1:\n')
-        for file in file_hashes:
-            wrk.write('%s %s %s\n' %
-                      (file_hashes[file][0], file_sizes[file], file))
+            wrk = open('%s/Release' % base_path, 'w')
+            wrk.write('Origin: Rubicon\n')
+            wrk.write('Label: %s\n' % self.repo_description)
+            wrk.write('Codename: %s\n' % distro)
+            wrk.write('Date: %s\n' %
+                      datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S UTC'))
+            wrk.write('Architectures: %s\n' % ' '.join(self.arch_list))
+            wrk.write('Components: %s\n' % self.component)
+            wrk.write('Description: %s of %s\n' %
+                      (self.repo_description, self.mirror_description))
 
-        wrk.write('SHA256:\n')
-        for file in file_hashes:
-            wrk.write('%s %s %s\n' %
-                      (file_hashes[file][1], file_sizes[file], file))
+            wrk.write('MD5Sum:\n')
+            for file in file_hashes:
+                wrk.write('%s %s %s\n' %
+                          (file_hashes[file][2], file_sizes[file], file))
 
-        wrk.close()
+            wrk.write('SHA1:\n')
+            for file in file_hashes:
+                wrk.write('%s %s %s\n' %
+                          (file_hashes[file][0], file_sizes[file], file))
+
+            wrk.write('SHA256:\n')
+            for file in file_hashes:
+                wrk.write('%s %s %s\n' %
+                          (file_hashes[file][1], file_sizes[file], file))
+
+            wrk.close()
