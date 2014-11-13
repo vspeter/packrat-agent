@@ -16,10 +16,21 @@ def hashFile(filename):
 
 
 class LocalRepoManager(object):
-    def __init__(self, root_dir, distro, component, repo_description,
+    def __init__(self, root_dir, component, repo_description,
                  mirror_description):
         self.root_dir = root_dir
-        self.distro = distro
         self.component = component
         self.repo_description = repo_description
         self.mirror_description = mirror_description
+
+    def addEntry(self, type, arch, filename, distro, distro_version):
+        pass
+
+    def loadFile(self, file_name, temp_file, arch):
+        pass
+
+    def checkFile(self, file_name, arch):
+        return True
+
+    def writeMetadata(self):
+        pass
