@@ -1,5 +1,5 @@
-import glob
 import os
+import logging
 from datetime import datetime
 
 from Deb import Deb
@@ -7,31 +7,33 @@ from LocalRepoManager import LocalRepoManager, hashFile
 
 """
 see https://wiki.debian.org/RepositoryFormat
+
+TODO: Run add entry into a db, and then read the db to generate the Meta data
 """
 
 
 class AptManager(LocalRepoManager):
     def __init__(self, *args, **kargs):
         super(AptManager, self).__init__(*args, **kargs)
-        self.file_list = []
         self.arch_list = ('i386', 'amd64')
         self.entry_list = {}
-        self._loadFiles()
 
-    def addEntry(self, type, arch, filename, distro, distro_version):
+    def addEntry(self, type, filename, distro, distro_version, arch):
         if type != 'deb':
-            print 'WARNING! New entry not a deb, skipping...'
+            logging.warning('apt: New entry not a deb, skipping...')
             return
 
         if distro != 'debian':
-            print 'WARNING! Not a debian distro, skipping...'
+            logging.warning('apt: Not a debian distro, skipping...')
             return
 
-        if distro not in self.entry_list:
+        if distro_version not in self.entry_list:
             self.entry_list[distro_version] = {}
-            for arch in self.arch_list:
-                self.entry_list[distro_version][arch] = {}
+            for tmp in self.arch_list:
+                self.entry_list[distro_version][tmp] = {}
 
+        logging.debug('apt: Got Entry for package: %s arch: %s distro: %s' %
+                      (filename, arch, distro_version))
         deb_path = 'pool/%s/%s' % (filename[0:5], filename)
         full_deb_path = '%s/%s' % (self.root_dir, deb_path)
         deb = Deb(full_deb_path)
@@ -40,7 +42,7 @@ class AptManager(LocalRepoManager):
         if arch == 'x86_64':
             arch = 'amd64'
         if arch != fields['Architecture']:
-            print 'WARNING! New entry arch mismatched, skipping...'
+            logging.warning('apt: New entry arch mismatched, skipping...')
             return
 
         if fields['Architecture'] == 'i386':
@@ -56,21 +58,17 @@ class AptManager(LocalRepoManager):
             self.entry_list[distro_version][arch][filename] = (
                 deb_path, sha1, sha256, md5, size, field_order, fields)
 
-    def _loadFiles(self):
-        self.file_list = []
-        for path in glob.glob('%s/*/*' % self.root_dir):
-            self.file_list.append(path.split('/')[-1])
-
-    def checkFile(self, file_name, arch):
-        return file_name in self.file_list
-
-    def loadFile(self, file_name, temp_file, arch):
+    def loadFile(self, file_name, temp_file, distro, distro_version, arch):
         dir_path = '%s/pool/%s/' % (self.root_dir, file_name[0:5])
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
         file_path = '%s%s' % (dir_path, file_name)
         os.rename(temp_file, file_path)
+
+    def checkFile(self, file_name, distro, distro_version, arch):
+        deb_path = '%s/pool/%s/%s' % (self.root_dir, file_name[0:5], file_name)
+        return os.path.exists(deb_path)
 
     def _writeArchMetadata(self, base_path, distro, arch, file_hashes,
                            file_sizes):
@@ -95,6 +93,7 @@ class AptManager(LocalRepoManager):
         full_path = '%s/%s' % (base_path, file_path)
         wrk = open(full_path, 'w')
         for filename in self.entry_list[distro][arch]:
+            logging.debug('apt: Writing package %s' % filename)
             (deb_path, sha1, sha256, md5, size, field_order,
              fields) = self.entry_list[distro][arch][filename]
 
@@ -121,11 +120,13 @@ class AptManager(LocalRepoManager):
         file_sizes = {}
 
         for distro in self.entry_list:
+            logging.debug('apt: Writing distro %s' % distro)
             base_path = '%s/dists/%s' % (self.root_dir, distro)
             if not os.path.exists(base_path):
                 os.makedirs(base_path)
 
             for arch in self.arch_list:
+                logging.debug('apt: Writing arch %s' % arch)
                 self._writeArchMetadata(base_path, distro, arch, file_hashes,
                                         file_sizes)
 
