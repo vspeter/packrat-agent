@@ -85,15 +85,19 @@ for uri in mirror['repo_list']:
 
         for file in file_list:
             basename = os.path.basename(file['file'])
-            if not manager.checkFile(basename, file['arch']):
-                print '    Retrieving "%s"...' % basename
-                wrkfile = packrat.getFile(file['file'])
-                manager.loadFile(basename, wrkfile, file['arch'])
             distro = packrat.getDistroVersion(file['distroversion'].
                                               split('/')[4])
+                                              #  TODO: cache this
 
-            manager.addEntry(file['type'], file['arch'], basename,
-                             distro['distro'], distro['version'])
+            if not manager.checkFile(basename, distro['distro'],
+                                     distro['version'], file['arch']):
+                print '    Retrieving "%s"...' % basename
+                wrkfile = packrat.getFile(file['file'])
+                manager.loadFile(basename, wrkfile, distro['distro'],
+                                 distro['version'], file['arch'])
+
+            manager.addEntry(file['type'], basename,
+                             distro['distro'], distro['version'], file['arch'])
     print '  Writing Metadata...'
     manager.writeMetadata()
 

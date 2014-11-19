@@ -23,13 +23,13 @@ class LocalRepoManager(object):
         self.repo_description = repo_description
         self.mirror_description = mirror_description
 
-    def addEntry(self, type, arch, filename, distro, distro_version):
+    def addEntry(self, type, filename, distro, distro_version, arch):
         pass
 
-    def loadFile(self, file_name, temp_file, arch):
+    def loadFile(self, file_name, temp_file, distro, distro_version, arch):
         pass
 
-    def checkFile(self, file_name, arch):
+    def checkFile(self, file_name, distro, distro_version, arch):
         return True
 
     def writeMetadata(self):
