@@ -20,6 +20,8 @@ class Rpm(object):
         return (result, [])
 
 
+# http://www.rubydoc.info/github/dmacvicar/ruby-rpm-ffi/RPM/FFI
+
 # NOTE: RPM Reading code is from PyRPM by Mario Morgado, Licensed BSD
 # From Here down is primarly from PyRPM, modified to comply with pep8
 # and other minor tweeks
