@@ -8,7 +8,7 @@ class Rpm(object):
     def __init__(self, filename):
         self.rpm = RPM_file(filename)
         if not self.rpm.binary:
-            raise RpmException('Unvalid RPM file')
+            raise RpmException('Invalid RPM file')
 
     def getDefs(self):
         result = {}

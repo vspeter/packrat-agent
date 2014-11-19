@@ -14,7 +14,7 @@ class YUMManager(LocalRepoManager):
 
     def addEntry(self, type, filename, distro, distro_version, arch):
         if type != 'rpm':
-            print 'WARNING! New entry not a rpm, skipping...'
+            logging.warning('yum: New entry not a rpm, skipping...')
             return
 
         logging.debug(('yum: Got Entry for package: %s arch: %s distro: %s ' +
@@ -40,7 +40,6 @@ class YUMManager(LocalRepoManager):
             fields['epoch']
         except KeyError:
             fields['epoch'] = 0
-        print fields
 
         if arch == 'all':
             arch = 'noarch'
