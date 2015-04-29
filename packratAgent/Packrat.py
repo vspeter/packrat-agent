@@ -1,162 +1,55 @@
-import urllib
-import urllib2
-import socket
 import logging
-import json
+from cinp import client
+
+class PackratConnectionException( Exception ):
+  pass
 
 
-class PackratConnectionException(Exception):
-    pass
+class PackratException( Exception ):
+  pass
 
+DISTRO_VERSION_CACHE = {}
 
-class PackratException(Exception):
-    pass
+class Packrat( object ):
+  def __init__( self, host, name, psk, proxy ):
+    self.cinp = client.CInP( host, '/api/v1', proxy )
+    #self.cinp.setAuth( name, psk )
+    self.name = name
 
+  def getFile( self, url, timeout=30 ):
+    logging.debug( 'Packrat: File URL: "%s"' % url )
 
-class Packrat(object):
+    tmpfile = open( '/tmp/getfile', 'w' )
+    self.cinp.getFile( url, tmpfile, timeout=timeout )
+    tmpfile.close()
 
-    def __init__(self, host, name, psk, proxy):
-        self.host = host
-        self.name = name
-        self.psk = psk
-        if proxy:
-            logging.debug('Packrat: setting proxy to %s' % proxy)
-            self.opener = urllib2.build_opener(
-                urllib2.ProxyHandler({'http': proxy, 'https': proxy}))
-        else:
-            self.opener = urllib2.build_opener(urllib2.ProxyHandler(
-                {}))  # no proxying, not matter what is in the enviornment
+    return '/tmp/getfile' #TODO: a real tmpfile
 
-    def _createURL(self, resource, key, subresource=None):
-        if subresource:
-            url = 'http://%s/api/v1/%s/%s/%s/?format=json' % (self.host,
-                                                              resource, key,
-                                                              subresource)
-        else:
-            url = 'http://%s/api/v1/%s/%s/?format=json' % (self.host,
-                                                           resource, key)
-        logging.debug('Packrat: API URL: "%s"' % url)
-        return url
+  def getMirror( self ):
+    return self.cinp.get( '/api/v1/Repos/Mirror:%s:' % self.name )
 
-    def _doGETRequest(self, module, key, subresource=None, timeout=30):
-        url = self._createURL(module, key, subresource)
+  def syncStart( self ):
+    return self.cinp.call( '/api/v1/Repos/Mirror:%s:(syncStart)' % self.name )
 
-        try:
-            resp = self.opener.open(url, timeout=timeout)
+  def syncComplete( self ):
+    return self.cinp.call( '/api/v1/Repos/Mirror:%s:(syncComplete)' % self.name )
 
-        except urllib2.HTTPError, e:
-            logging.error('Packrat: _doGETRequest returned "%s"' % e.code)
-            raise PackratConnectionException(
-                'HTTPError Sending Request(%s), "%s"' % (e.code, e.reason))
+  def getRepo( self, repo_uri ): #TODO: make sure it is a repo URI
+    return self.cinp.get( repo_uri )
 
-        except urllib2.URLError, e:
-            if isinstance(e.reason, socket.timeout):
-                raise PackratException(
-                    'Packrat: _doGETRequest Timeout after %s seconds.' %
-                    timeout)
+  def getPackages( self, repo_uri ): #TODO: iterate over all of the chunks
+    return self.cinp.list( '/api/v1/Repos/Package', 'repo-sync', { 'repo': repo_uri } )[ 0 ]
 
-            raise PackratConnectionException(
-                'Packrat: _doGETRequest URLError Sending Request, "%s"' %
-                e.reason)
+  def getPackageFiles( self, repo_uri, package_uri ): #TODO: iterate over all of the list chunks
+    uri_list = self.cinp.list( '/api/v1/Repos/PackageFile', 'repo-sync', { 'repo': repo_uri, 'package': package_uri } )[ 0 ]
+    return self.cinp.getObjects( uri_list=uri_list )
 
-        if resp.code != 200:
-            raise PackratException(
-                'Packrat: _doGETRequest Error with request, HTTP Error %s' %
-                resp.status)
+  def getDistroVersion( self, version_uri ): #TODO: make sure it is a distro version uri
+    global DISTRO_VERSION_CACHE
 
-        result = resp.read()
-        resp.close()
-        return json.loads(result)
+    if version_uri in DISTRO_VERSION_CACHE:
+      return DISTRO_VERSION_CACHE[ version_uri ]
 
-    def _doPOSTRequest(self, module, key, data, timeout=30):
-        url = self._createURL(module, key)
+    DISTRO_VERSION_CACHE[ version_uri ] = self.cinp.get( version_uri )
 
-        logging.debug('Packrat: data:')
-        logging.debug('Packrat: %s' % data)
-
-        try:
-            resp = self.opener.open(url,
-                                    data=urllib.urlencode(json.dumps(data)),
-                                    timeout=timeout)
-
-        except urllib2.HTTPError, e:
-            logging.error('Packrat: _doPOSTRequest returned "%s"' % e.code)
-            raise PackratConnectionException(
-                'HTTPError Sending Request(%s), "%s"' % (e.code, e.reason))
-
-        except urllib2.URLError, e:
-            if isinstance(e.reason, socket.timeout):
-                raise PackratException(
-                    'Packrat: _doPOSTRequest Timeout after %s seconds.' %
-                    timeout)
-
-            raise PackratConnectionException(
-                'Packrat: _doPOSTRequest URLError Sending Request, "%s"' %
-                e.reason)
-
-        if resp.code != 200:
-            raise PackratException(
-                'Packrat: _doPOSTRequest Error with request, HTTP Error %s' %
-                resp.status)
-
-        result = resp.read()
-        resp.close()
-        return json.loads(result)
-
-    def getFile(self, path, timeout=30):
-        url = 'http://%s%s' % (self.host, path)
-        logging.debug('Packrat: File URL: "%s"' % url)
-        try:
-            resp = self.opener.open(url, timeout=timeout)
-
-        except urllib2.HTTPError, e:
-            logging.error('Packrat: getFile returned "%s"' % e.code)
-            raise PackratConnectionException(
-                'HTTPError Retreiving File(%s), "%s"' % (e.code, e.reason))
-
-        except urllib2.URLError, e:
-            if isinstance(e.reason, socket.timeout):
-                raise PackratException(
-                    'Request Timeout after %s seconds.' % timeout)
-
-            raise PackratConnectionException(
-                'URLError Retreiving File, "%s"' % e.reason)
-
-        if resp.code != 200:
-            raise PackratException(
-                'Error with file retreival, HTTP Error %s' % resp.status)
-
-        tmpfile = open('/tmp/getfile', 'w')
-        while True:
-            buff = resp.read(4096)
-            if not buff:
-                break
-            tmpfile.write(buff)
-
-        tmpfile.close()
-
-        return '/tmp/getfile'
-
-    def getMirror(self):
-        return self._doGETRequest('mirror', self.name)
-
-    def syncStart(self):
-        return
-        self._doRequest('sync.start', {})
-
-    def syncComplete(self):
-        return
-        self._doRequest('sync.complete', {})
-
-    def getRepo(self, repo_id):
-        return self._doGETRequest('repo', repo_id)
-
-    def getPackages(self, repo_id):
-        return self._doGETRequest('repo', repo_id, 'packages')['objects']
-
-    def getPackageFiles(self, repo_id, package_name):
-        return self._doGETRequest('repo', repo_id,
-                                  'files/%s' % package_name)['objects']
-
-    def getDistroVersion(self, version_id):
-        return self._doGETRequest('distroversion', version_id)
+    return DISTRO_VERSION_CACHE[ version_uri ]

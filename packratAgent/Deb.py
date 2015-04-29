@@ -5,38 +5,36 @@ from tarfile import TarFile
 
 
 class Deb(object):
+  def __init__( self, filename ):
+    self.filename = filename
 
-    def __init__(self, filename):
-        self.filename = filename
+  def _readControl( self ):
+    ar = arpy.Archive( self.filename )
+    ar.read_all_headers()
 
-    def _readControl(self):
-        ar = arpy.Archive(self.filename)
-        ar.read_all_headers()
+    targz = ar.archived_files[ 'control.tar.gz' ].read()
 
-        targz = ar.archived_files['control.tar.gz'].read()
+    tar = GzipFile( fileobj=StringIO( targz ) ).read()
 
-        tar = GzipFile(fileobj=StringIO(targz)).read()
+    control = TarFile( fileobj=StringIO( tar ) ).extractfile( './control' ).read()
 
-        control = TarFile(fileobj=StringIO(tar)).extractfile(
-            './control').read()
+    return control
 
-        return control
+  def getControlFields( self ):
+    order = []
+    results = {}
+    control = self._readControl()
+    doDescription = False
+    for line in control.splitlines():
+      if doDescription:
+        results[ 'Description' ] += '\n'
+        results[ 'Description' ] += line
+      else:
+        ( key, value ) = line.split( ':' )
+        key = key.strip()
+        order.append( key )
+        results[ key ] = value.strip()
+        if key == 'Description':
+          doDescription = True
 
-    def getControlFields(self):
-        order = []
-        results = {}
-        control = self._readControl()
-        doDescription = False
-        for line in control.splitlines():
-            if doDescription:
-                results['Description'] += '\n'
-                results['Description'] += line
-            else:
-                (key, value) = line.split(':')
-                key = key.strip()
-                order.append(key)
-                results[key] = value.strip()
-                if key == 'Description':
-                    doDescription = True
-
-        return (order, results)
+    return ( order, results )
