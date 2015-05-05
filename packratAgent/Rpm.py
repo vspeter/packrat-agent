@@ -1,23 +1,22 @@
 
-class RpmException(Exception):
+class RpmException( Exception ):
     pass
 
 
-class Rpm(object):
+class Rpm( object ):
+  def __init__( self, filename ):
+    self.rpm = RPM_file( filename )
+    if not self.rpm.binary:
+      raise RpmException( 'Invalid RPM file' )
 
-    def __init__(self, filename):
-        self.rpm = RPM_file(filename)
-        if not self.rpm.binary:
-            raise RpmException('Invalid RPM file')
+  def getDefs(self):
+    result = {}
+    for tag in RPMTAGS:
+      value = self.rpm[ tag ]
+      if value is not None:
+        result[ RPMTAGS[ tag ] ] = value
 
-    def getDefs(self):
-        result = {}
-        for tag in RPMTAGS:
-            value = self.rpm[tag]
-            if value is not None:
-                result[RPMTAGS[tag]] = value
-
-        return (result, [])
+    return ( result, [] )
 
 
 # http://www.rubydoc.info/github/dmacvicar/ruby-rpm-ffi/RPM/FFI

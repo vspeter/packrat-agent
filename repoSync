@@ -10,96 +10,78 @@ from packratAgent.Apt import AptManager
 from packratAgent.Yum import YUMManager
 from packratAgent.Zypper import ZypperManager
 
-oparser = OptionParser(description='Repo Mirror Sync')
+oparser = OptionParser( description='Repo Mirror Sync' )
 
-oparser.add_option('-v', '--verbose',
-                   dest='verbose', default=False, action='store_true')
+oparser.add_option( '-v', '--verbose', dest='verbose', default=False, action='store_true' )
 
-(options, args) = oparser.parse_args()
+( options, args ) = oparser.parse_args()
 
 logging.basicConfig()
 logger = logging.getLogger()
 
 if options.verbose:
-    logger.setLevel(logging.DEBUG)
+  logger.setLevel(logging.DEBUG)
 
 config_file = ConfigParser.ConfigParser()
 
 try:
-    # config_file.read( '/etc/repo/mirror.conf' )
-    config_file.read('mirror.conf')
+  # config_file.read( '/etc/packrat/mirror.conf' )
+  config_file.read( 'mirror.conf' )
 except ConfigParser.Error as e:
-    print 'Error reading config file:'
-    print e
-    sys.exit(1)
+  print 'Error reading config file:'
+  print e
+  sys.exit( 1 )
 
 try:
-    packrat = Packrat(
-        config_file.get('mirror', 'host'), config_file.get('mirror', 'name'),
-        config_file.get('mirror', 'psk'), config_file.get('mirror', 'proxy'))
+  packrat = Packrat( config_file.get( 'mirror', 'host' ), config_file.get( 'mirror', 'name' ), config_file.get( 'mirror', 'psk' ), config_file.get( 'mirror', 'proxy' ) )
 except ConfigParser.Error as e:
-    print 'Error retreiving hostname, psk, and/or proxy from config file'
-    sys.exit(1)
+  print 'Error retreiving hostname, psk, and/or proxy from config file'
+  sys.exit( 1 )
 
 try:
-    root_dir = config_file.get('mirror', 'root_dir')
+  root_dir = config_file.get( 'mirror', 'root_dir' )
 except ConfigParser.Error as e:
-    print 'Error retreiving root_dir from config file'
-    sys.exit(1)
+  print 'Error retreiving root_dir from config file'
+  sys.exit( 1 )
+
+mirror = packrat.getMirror()
+print 'Last Sync was from %s to %s' % ( mirror[ 'last_sync_start' ], mirror[ 'last_sync_complete' ] )
 
 packrat.syncStart()
 
-mirror = packrat.getMirror()
-print 'Last Sync was from %s to %s' % (mirror['last_sync_start'],
-                                       mirror['last_sync_complete'])
-
 print 'Processing Repos....'
-for uri in mirror['repo_list']:
-    id = uri.split('/')[4]
-    repo = packrat.getRepo(id)
-    print 'Processing repo "%s"' % repo['description']
-    if repo['manager_type'] == 'apt':
-        manager = AptManager('%s/apt/%s' % (root_dir, repo['release_type']),
-                             'main', repo['description'],
-                             mirror['description'])
-    elif repo['manager_type'] == 'yum':
-        manager = YUMManager('%s/yum/%s' % (root_dir, repo['release_type']),
-                             'main', repo['description'],
-                             mirror['description'])
-    elif repo['manager_type'] == 'zypper':
-        manager = ZypperManager('%s/zypper/%s' % (root_dir,
-                                repo['release_type']),
-                                'main', repo['description'],
-                                mirror['description'])
-    else:
-        print 'Unknown Manager Type "%s", skipped.' % repo['manager_type']
-        continue
+for repo_uri in mirror[ 'repo_list' ]:
+  repo = packrat.getRepo( repo_uri )
+  print 'Processing repo "%s"' % repo[ 'description' ]
+  if repo[ 'manager_type' ] == 'apt':
+    manager = AptManager( '%s/apt/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ] )
+  elif repo['manager_type'] == 'yum':
+    manager = YUMManager( '%s/yum/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ] )
+  elif repo['manager_type'] == 'zypper':
+    manager = ZypperManager( '%s/zypper/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ] )
+  else:
+    print 'Unknown Manager Type "%s", skipped.' % repo[ 'manager_type' ]
+    continue
 
-     #TODO: When packrat master can .unique() the restuls of getPAckages,
-     # this can be fixed
-    package_list = list(set([i['name'] for i in packrat.getPackages(repo['id'])
-                             ]))
-    for package in package_list:
-        print '  Checking Package "%s"' % package
-        file_list = packrat.getPackageFiles(repo['id'], package)
+  #TODO: When packrat master can .unique() the restuls of getPAckages,
+  # this can be fixed
+  for package_uri in packrat.getPackages( repo_uri ):
+    print '  Checking Package "%s"' % package_uri
+    file_list = packrat.getPackageFiles( repo_uri, package_uri )
 
-        for file in file_list:
-            basename = os.path.basename(file['file'])
-            distro = packrat.getDistroVersion(file['distroversion'].
-                                              split('/')[4])
-                                              #  TODO: cache this
+    for file in file_list:
+      file = file_list[ file ]
+      basename = os.path.basename( file[ 'file' ] )
+      distro = packrat.getDistroVersion( file[ 'distroversion' ] )
 
-            if not manager.checkFile(basename, distro['distro'],
-                                     distro['version'], file['arch']):
-                print '    Retrieving "%s"...' % basename
-                wrkfile = packrat.getFile(file['file'])
-                manager.loadFile(basename, wrkfile, distro['distro'],
-                                 distro['version'], file['arch'])
+      if not manager.checkFile( basename, distro[ 'distro' ], distro[ 'version' ], file[ 'arch' ] ):
+        print '    Retrieving "%s"...' % basename
+        wrkfile = packrat.getFile( file[ 'file' ] )
+        manager.loadFile( basename, wrkfile, distro[ 'distro' ], distro[ 'version' ], file[ 'arch' ] )
 
-            manager.addEntry(file['type'], basename,
-                             distro['distro'], distro['version'], file['arch'])
-    print '  Writing Metadata...'
-    manager.writeMetadata()
+      manager.addEntry( file[ 'type' ], basename, distro[ 'distro' ], distro[ 'version' ], file[ 'arch' ] )
+  print '  Writing Metadata...'
+  manager.writeMetadata()
 
 packrat.syncComplete()
 print 'Done!'
