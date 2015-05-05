@@ -9,7 +9,7 @@ from Rpm import Rpm
 class YUMManager( LocalRepoManager ):
   def __init__( self, *args, **kargs ):
     super( YUMManager, self ).__init__( *args, **kargs )
-    self.arch_list = ( 'x86_64', 'i368' )
+    self.arch_list = ( 'x86_64', 'i386' )
     self.entry_list = {}
 
   def addEntry( self, type, filename, distro, distro_version, arch ):
