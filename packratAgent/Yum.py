@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+import shutil
 from xml.sax import saxutils
 from LocalRepoManager import LocalRepoManager, hashFile
 from Rpm import Rpm
@@ -61,7 +62,7 @@ class YUMManager( LocalRepoManager ):
         os.makedirs( dir_path )
 
     file_path = '%s%s' % ( dir_path, file_name )
-    os.rename( temp_file, file_path )
+    shutil.move( temp_file, file_path )
 
   def checkFile( self, file_name, distro, distro_version, arch ):
     rpm_path = '%s/%s/%s/%s/%s/%s' % ( self.root_dir, distro, self.component, distro_version, arch, file_name )

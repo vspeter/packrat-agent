@@ -1,5 +1,7 @@
 import os
 import logging
+import shutil
+
 from datetime import datetime
 
 from Deb import Deb
@@ -62,7 +64,7 @@ class AptManager(LocalRepoManager):
         os.makedirs( dir_path )
 
     file_path = '%s%s' % ( dir_path, file_name )
-    os.rename( temp_file, file_path )
+    shutil.move( temp_file, file_path )
 
   def checkFile( self, file_name, distro, distro_version, arch ):
     deb_path = '%s/pool/%s/%s' % ( self.root_dir, file_name[ 0:5 ], file_name )
