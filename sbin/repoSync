@@ -32,9 +32,9 @@ except ConfigParser.Error as e:
   sys.exit( 1 )
 
 try:
-  packrat = Packrat( config_file.get( 'mirror', 'host' ), config_file.get( 'mirror', 'name' ), config_file.get( 'mirror', 'psk' ), config_file.get( 'mirror', 'proxy' ) )
+  packrat = Packrat( config_file.get( 'mirror', 'host' ), config_file.get( 'mirror', 'proxy' ), config_file.get( 'mirror', 'name' ), config_file.get( 'mirror', 'psk' ) )
 except ConfigParser.Error as e:
-  print 'Error retreiving hostname, psk, and/or proxy from config file'
+  print 'Error retreiving host, proxy, name, and/or psk from config file'
   sys.exit( 1 )
 
 try:

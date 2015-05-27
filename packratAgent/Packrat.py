@@ -11,7 +11,7 @@ class PackratException( Exception ):
 DISTRO_VERSION_CACHE = {}
 
 class Packrat( object ):
-  def __init__( self, host, name, psk, proxy ):
+  def __init__( self, host, proxy, name, psk ):
     self.cinp = client.CInP( host, '/api/v1', proxy )
     #self.cinp.setAuth( name, psk )
     self.name = name
