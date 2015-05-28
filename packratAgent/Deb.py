@@ -30,7 +30,9 @@ class Deb(object):
         results[ 'Description' ] += '\n'
         results[ 'Description' ] += line
       else:
-        ( key, value ) = line.split( ':' )
+        pos = line.find( ':' )
+        key = line[ 0 : pos ]
+        value = line[ pos + 1 : ]
         key = key.strip()
         order.append( key )
         results[ key ] = value.strip()
