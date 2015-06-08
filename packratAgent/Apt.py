@@ -1,7 +1,7 @@
 import os
 import logging
 import shutil
-
+import gpgme
 from datetime import datetime
 
 from Deb import Deb
@@ -136,14 +136,33 @@ class AptManager(LocalRepoManager):
 
       wrk.write( 'MD5Sum:\n' )
       for file in file_hashes:
-        wrk.write( '%s %s %s\n' % ( file_hashes[ file ][2], file_sizes[ file ], file ) )
+        wrk.write( ' %s %s %s\n' % ( file_hashes[ file ][2], file_sizes[ file ], file ) )
 
       wrk.write( 'SHA1:\n' )
       for file in file_hashes:
-        wrk.write( '%s %s %s\n' % ( file_hashes[ file ][0], file_sizes[ file ], file ) )
+        wrk.write( ' %s %s %s\n' % ( file_hashes[ file ][0], file_sizes[ file ], file ) )
 
       wrk.write( 'SHA256:\n' )
       for file in file_hashes:
-        wrk.write( '%s %s %s\n' % ( file_hashes[ file ][1], file_sizes[ file ], file ) )
+        wrk.write( ' %s %s %s\n' % ( file_hashes[ file ][1], file_sizes[ file ], file ) )
 
       wrk.close()
+
+  def sign( self, gpg_key ):
+    ctx = gpgme.Context()
+    ctx.armor = True
+    ctx.textmode = True
+    key = ctx.get_key( gpg_key )
+    ctx.signers = [ key ]
+
+    for distro in self.entry_list:
+      logging.debug( 'apt: Signing distro %s' % distro )
+      base_path = '%s/dists/%s' % ( self.root_dir, distro )
+
+      plain = open( '%s/Release' % base_path, 'r' )
+      sign = open( '%s/Release.gpg' % base_path, 'w' )
+
+      ctx.sign( plain, sign, gpgme.SIG_MODE_DETACH )
+
+      plain.close()
+      sign.close()

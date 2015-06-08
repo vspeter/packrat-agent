@@ -8,4 +8,5 @@ name: prod
 psk:  prod
 proxy:
 root_dir: /tmp/repo
+gpg_sign_key:
 {% endtarget %}

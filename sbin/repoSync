@@ -43,6 +43,13 @@ except ConfigParser.Error as e:
   print 'Error retreiving root_dir from config file'
   sys.exit( 1 )
 
+try:
+  gpg_key = config_file.get( 'mirror', 'gpg_sign_key' )
+  if not gpg_key:
+    gpg_key = None
+except ConfigParser.Error as e:
+  gpg_key = None
+
 mirror = packrat.getMirror()
 print 'Last Sync was from %s to %s' % ( mirror[ 'last_sync_start' ], mirror[ 'last_sync_complete' ] )
 
@@ -81,6 +88,10 @@ for repo_uri in mirror[ 'repo_list' ]:
       manager.addEntry( file[ 'type' ], basename, distro[ 'distro' ], distro[ 'version' ], file[ 'arch' ] )
   print '  Writing Metadata...'
   manager.writeMetadata()
+
+  if gpg_key:
+    print '  Signing...'
+    manager.sign( gpg_key )
 
 packrat.syncComplete()
 print 'Done!'

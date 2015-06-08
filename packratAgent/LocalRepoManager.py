@@ -32,3 +32,6 @@ class LocalRepoManager( object ):
 
   def writeMetadata( self ):
     pass
+
+  def sign( self, gpg_key ):
+    pass
