@@ -32,19 +32,19 @@ except ConfigParser.Error as e:
   sys.exit( 1 )
 
 try:
-  packrat = Packrat( config_file.get( 'mirror', 'host' ), config_file.get( 'mirror', 'proxy' ), config_file.get( 'mirror', 'name' ), config_file.get( 'mirror', 'psk' ) )
+  packrat = Packrat( config_file.get( 'packrat', 'host' ), config_file.get( 'packrat', 'proxy' ), config_file.get( 'packrat', 'name' ), config_file.get( 'packrat', 'psk' ) )
 except ConfigParser.Error as e:
   print 'Error retreiving host, proxy, name, and/or psk from config file'
   sys.exit( 1 )
 
 try:
-  root_dir = config_file.get( 'mirror', 'root_dir' )
+  root_dir = config_file.get( 'repo', 'root_dir' )
 except ConfigParser.Error as e:
   print 'Error retreiving root_dir from config file'
   sys.exit( 1 )
 
 try:
-  gpg_key = config_file.get( 'mirror', 'gpg_sign_key' )
+  gpg_key = config_file.get( 'repo', 'gpg_sign_key' )
   if not gpg_key:
     gpg_key = None
 except ConfigParser.Error as e:

@@ -2,11 +2,13 @@
 # generated at {{ timestamp }}
 # for device {{ description }}, id: {{ id }}
 
-[mirror]
+[packrat]
 host: http://localhost:8000
 name: prod
 psk:  prod
 proxy:
+
+[repo]
 root_dir: /tmp/repo
 gpg_sign_key:
 {% endtarget %}
