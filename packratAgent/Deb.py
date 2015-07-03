@@ -4,7 +4,7 @@ from gzip import GzipFile
 from tarfile import TarFile
 
 
-class Deb(object):
+class Deb( object ):
   def __init__( self, filename ):
     self.filename = filename
 

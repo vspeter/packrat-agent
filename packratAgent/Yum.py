@@ -56,16 +56,16 @@ class YUMManager( LocalRepoManager ):
     for arch in arch_list:
       self.entry_list[ distro ][ distro_version ][ arch ][ filename ] = ( sha1, size, changelog, fields )
 
-  def loadFile( self, file_name, temp_file, distro, distro_version, arch ):
+  def loadFile( self, filename, temp_file, distro, distro_version, arch ):
     dir_path = '%s/%s/%s/%s/%s/' % ( self.root_dir, distro, self.component, distro_version, arch )
     if not os.path.exists( dir_path ):
         os.makedirs( dir_path )
 
-    file_path = '%s%s' % ( dir_path, file_name )
+    file_path = '%s%s' % ( dir_path, filename )
     shutil.move( temp_file, file_path )
 
-  def checkFile( self, file_name, distro, distro_version, arch ):
-    rpm_path = '%s/%s/%s/%s/%s/%s' % ( self.root_dir, distro, self.component, distro_version, arch, file_name )
+  def checkFile( self, filename, distro, distro_version, arch ):
+    rpm_path = '%s/%s/%s/%s/%s/%s' % ( self.root_dir, distro, self.component, distro_version, arch, filename )
     return os.path.exists( rpm_path )
 
   def _writeArchMetadata( self, base_path, distro, distro_version, arch ):

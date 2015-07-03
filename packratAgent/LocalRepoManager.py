@@ -24,10 +24,10 @@ class LocalRepoManager( object ):
   def addEntry( self, type, filename, distro, distro_version, arch ):
     pass
 
-  def loadFile( self, file_name, temp_file, distro, distro_version, arch ):
+  def loadFile( self, filename, temp_file, distro, distro_version, arch ):
     pass
 
-  def checkFile( self, file_name, distro, distro_version, arch ):
+  def checkFile( self, filename, distro, distro_version, arch ):
     return True
 
   def writeMetadata( self ):

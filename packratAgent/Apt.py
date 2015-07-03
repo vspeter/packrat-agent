@@ -14,7 +14,7 @@ TODO: Run add entry into a db, and then read the db to generate the Meta data
 """
 
 
-class AptManager(LocalRepoManager):
+class AptManager( LocalRepoManager ):
   def __init__( self, *args, **kargs ):
     super( AptManager, self ).__init__( *args, **kargs )
     self.arch_list = ( 'i386', 'amd64' )
@@ -42,32 +42,32 @@ class AptManager(LocalRepoManager):
 
     if arch == 'x86_64':
       arch = 'amd64'
-    if arch != fields['Architecture']:
-      logging.warning('apt: New entry arch mismatched, skipping...')
+    if arch != fields[ 'Architecture' ]:
+      logging.warning( 'apt: New entry arch mismatched, skipping...' )
       return
 
-    if fields['Architecture'] == 'i386':
-      arch_list = ('i386',)
-    elif fields['Architecture'] == 'amd64':
-      arch_list = ('amd64',)
-    elif fields['Architecture'] == 'all':
-      arch_list = ('i386', 'amd64')
+    if fields[ 'Architecture' ] == 'i386':
+      arch_list = ( 'i386', )
+    elif fields[ 'Architecture' ] == 'amd64':
+      arch_list = ( 'amd64', )
+    elif fields[ 'Architecture' ] == 'all':
+      arch_list = ( 'i386', 'amd64' )
 
     size = os.path.getsize( full_deb_path )
     ( sha1, sha256, md5 ) = hashFile( full_deb_path )
     for arch in arch_list:
       self.entry_list[ distro_version ][ arch ][ filename ] = ( deb_path, sha1, sha256, md5, size, field_order, fields )
 
-  def loadFile( self, file_name, temp_file, distro, distro_version, arch ):
-    dir_path = '%s/pool/%s/' % ( self.root_dir, file_name[ 0:5 ] )
+  def loadFile( self, filename, temp_file, distro, distro_version, arch ):
+    dir_path = '%s/pool/%s/' % ( self.root_dir, filename[ 0:5 ] )
     if not os.path.exists( dir_path ):
         os.makedirs( dir_path )
 
-    file_path = '%s%s' % ( dir_path, file_name )
+    file_path = '%s%s' % ( dir_path, filename )
     shutil.move( temp_file, file_path )
 
-  def checkFile( self, file_name, distro, distro_version, arch ):
-    deb_path = '%s/pool/%s/%s' % ( self.root_dir, file_name[ 0:5 ], file_name )
+  def checkFile( self, filename, distro, distro_version, arch ):
+    deb_path = '%s/pool/%s/%s' % ( self.root_dir, filename[ 0:5 ], file_name )
     return os.path.exists( deb_path )
 
   def _writeArchMetadata( self, base_path, distro, arch, file_hashes, file_sizes ):

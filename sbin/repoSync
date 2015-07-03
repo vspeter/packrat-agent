@@ -9,6 +9,7 @@ from packratAgent.Packrat import Packrat
 from packratAgent.Apt import AptManager
 from packratAgent.Yum import YUMManager
 from packratAgent.Zypper import ZypperManager
+from packratAgent.Json import JSONManager
 
 oparser = OptionParser( description='Repo Mirror Sync' )
 
@@ -61,16 +62,16 @@ for repo_uri in mirror[ 'repo_list' ]:
   print 'Processing repo "%s"' % repo[ 'description' ]
   if repo[ 'manager_type' ] == 'apt':
     manager = AptManager( '%s/apt/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ] )
-  elif repo['manager_type'] == 'yum':
+  elif repo[ 'manager_type' ] == 'yum':
     manager = YUMManager( '%s/yum/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ] )
-  elif repo['manager_type'] == 'zypper':
+  elif repo[ 'manager_type' ] == 'zypper':
     manager = ZypperManager( '%s/zypper/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ] )
+  elif repo[ 'manager_typ' ] == 'json'
+    manager = JSONManager( '%s/zypper/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ] )
   else:
     print 'Unknown Manager Type "%s", skipped.' % repo[ 'manager_type' ]
     continue
 
-  #TODO: When packrat master can .unique() the restuls of getPAckages,
-  # this can be fixed
   for package_uri in packrat.getPackages( repo_uri ):
     print '  Checking Package "%s"' % package_uri
     file_list = packrat.getPackageFiles( repo_uri, package_uri )
