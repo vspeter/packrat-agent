@@ -61,13 +61,13 @@ for repo_uri in mirror[ 'repo_list' ]:
   repo = packrat.getRepo( repo_uri )
   print 'Processing repo "%s"' % repo[ 'description' ]
   if repo[ 'manager_type' ] == 'apt':
-    manager = AptManager( '%s/apt/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ] )
+    manager = AptManager( '%s/apt/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ], gpg_key )
   elif repo[ 'manager_type' ] == 'yum':
-    manager = YUMManager( '%s/yum/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ] )
+    manager = YUMManager( '%s/yum/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ], gpg_key )
   elif repo[ 'manager_type' ] == 'zypper':
-    manager = ZypperManager( '%s/zypper/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ] )
-  elif repo[ 'manager_typ' ] == 'json'
-    manager = JSONManager( '%s/zypper/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ] )
+    manager = ZypperManager( '%s/zypper/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ], gpg_key )
+  elif repo[ 'manager_type' ] == 'json':
+    manager = JSONManager( '%s/json/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ], gpg_key )
   else:
     print 'Unknown Manager Type "%s", skipped.' % repo[ 'manager_type' ]
     continue
@@ -87,12 +87,9 @@ for repo_uri in mirror[ 'repo_list' ]:
         manager.loadFile( basename, wrkfile, distro[ 'distro' ], distro[ 'version' ], file[ 'arch' ] )
 
       manager.addEntry( file[ 'type' ], basename, distro[ 'distro' ], distro[ 'version' ], file[ 'arch' ] )
+
   print '  Writing Metadata...'
   manager.writeMetadata()
-
-  if gpg_key:
-    print '  Signing...'
-    manager.sign( gpg_key )
 
 packrat.syncComplete()
 print 'Done!'

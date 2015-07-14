@@ -15,11 +15,12 @@ def hashFile( filename ):
 
 
 class LocalRepoManager( object ):
-  def __init__( self, root_dir, component, repo_description, mirror_description ):
+  def __init__( self, root_dir, component, repo_description, mirror_description, gpg_key=None ):
     self.root_dir = root_dir
     self.component = component
     self.repo_description = repo_description
     self.mirror_description = mirror_description
+    self.gpg_key = gpg_key
 
   def addEntry( self, type, filename, distro, distro_version, arch ):
     pass

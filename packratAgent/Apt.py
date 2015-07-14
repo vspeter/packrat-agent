@@ -67,7 +67,7 @@ class AptManager( LocalRepoManager ):
     shutil.move( temp_file, file_path )
 
   def checkFile( self, filename, distro, distro_version, arch ):
-    deb_path = '%s/pool/%s/%s' % ( self.root_dir, filename[ 0:5 ], file_name )
+    deb_path = '%s/pool/%s/%s' % ( self.root_dir, filename[ 0:5 ], filename )
     return os.path.exists( deb_path )
 
   def _writeArchMetadata( self, base_path, distro, arch, file_hashes, file_sizes ):
@@ -148,21 +148,21 @@ class AptManager( LocalRepoManager ):
 
       wrk.close()
 
-  def sign( self, gpg_key ):
-    ctx = gpgme.Context()
-    ctx.armor = True
-    ctx.textmode = True
-    key = ctx.get_key( gpg_key )
-    ctx.signers = [ key ]
+    if self.gpg_key:
+      ctx = gpgme.Context()
+      ctx.armor = True
+      ctx.textmode = True
+      key = ctx.get_key( self.gpg_key )
+      ctx.signers = [ key ]
 
-    for distro in self.entry_list:
-      logging.debug( 'apt: Signing distro %s' % distro )
-      base_path = '%s/dists/%s' % ( self.root_dir, distro )
+      for distro in self.entry_list:
+        logging.info( 'apt: Signing distro %s' % distro )
+        base_path = '%s/dists/%s' % ( self.root_dir, distro )
 
-      plain = open( '%s/Release' % base_path, 'r' )
-      sign = open( '%s/Release.gpg' % base_path, 'w' )
+        plain = open( '%s/Release' % base_path, 'r' )
+        sign = open( '%s/Release.gpg' % base_path, 'w' )
 
-      ctx.sign( plain, sign, gpgme.SIG_MODE_DETACH )
+        ctx.sign( plain, sign, gpgme.SIG_MODE_DETACH )
 
-      plain.close()
-      sign.close()
+        plain.close()
+        sign.close()
