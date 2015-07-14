@@ -1,3 +1,10 @@
+packrat-agent (0.3-1) trusty; urgency=medium
+
+  * Improved YUM/RPM handeling
+  * RUM Package Signing
+
+ -- Peter <peter@blueboy>  Tue, 14 Jul 2015 09:34:14 -0600
+
 packrat-agent (0.2-1) trusty; urgency=medium
 
   * Added JSON Repo Support
