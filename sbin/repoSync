@@ -8,7 +8,7 @@ import logging
 from packratAgent.Packrat import Packrat
 from packratAgent.Apt import AptManager
 from packratAgent.Yum import YUMManager
-from packratAgent.Zypper import ZypperManager
+from packratAgent.Yast import YaSTManager
 from packratAgent.Json import JSONManager
 
 oparser = OptionParser( description='Repo Mirror Sync' )
@@ -64,8 +64,8 @@ for repo_uri in mirror[ 'repo_list' ]:
     manager = AptManager( '%s/apt/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ], gpg_key )
   elif repo[ 'manager_type' ] == 'yum':
     manager = YUMManager( '%s/yum/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ], gpg_key )
-  elif repo[ 'manager_type' ] == 'zypper':
-    manager = ZypperManager( '%s/zypper/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ], gpg_key )
+  elif repo[ 'manager_type' ] == 'yast':
+    manager = YaSTManager( '%s/yast/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ], gpg_key )
   elif repo[ 'manager_type' ] == 'json':
     manager = JSONManager( '%s/json/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ], gpg_key )
   else:

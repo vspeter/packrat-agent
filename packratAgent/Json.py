@@ -9,7 +9,7 @@ from LocalRepoManager import LocalRepoManager, hashFile
 def _splitFileName( filename ): # compare with packrat/Repos/Resource.py -> load
   filename = os.path.basename( filename )
 
-  if filename.endswith( ( '.tar.gz', '.tar.bz2', '.tar.xz' ) ):
+  if filename.endswith( ( '.tar.gz', '.tar.bz2', '.tar.xz', 'img.gz', 'img.bz2', 'img.xz' ) ):
     ( filename, extension, extension2 ) = filename.rsplit( '.', 2 )
     extension = '%s.%s' % ( extension, extension2 )
   else:

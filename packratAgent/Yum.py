@@ -3,7 +3,6 @@ import time
 import logging
 import gpgme
 import shutil
-from xml.sax import saxutils
 from yum.packages import YumLocalPackage
 from rpm import rpm
 
@@ -99,7 +98,7 @@ class YUMManager( LocalRepoManager ):
 
     ( sha1orig, sha256orig, md5orig ) = hashFile( other_full_path )
     ( sha1, sha256, md5 ) = hashFile( other_full_path )  # techincially the .gzed one
-    repo_files.append( { 'type': 'other', 'href': 'other.xml', 'checksum': sha256, 'open-checksum': sha1orig } )
+    repo_files.append( { 'type': 'other', 'href': 'other.xml', 'checksum': sha256, 'open-checksum': sha256orig } )
 
     ( sha1orig, sha256orig, md5orig ) = hashFile( filelists_full_path )
     ( sha1, sha256, md5 ) = hashFile( filelists_full_path )

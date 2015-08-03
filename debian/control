@@ -8,6 +8,6 @@ Standards-Version: 3.8.3
 
 Package: packrat-agent
 Architecture: all
-Depends: python (>= 2.6), python-support, python-simplejson, python-cinp, python-arpy, plato-client, python-gpgme, yum, cron, ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
+Depends: python (>= 2.6), python-support, python-simplejson, python-cinp, python-arpy, plato-client, python-gpgme, python-rpm, yum, cron, ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
 Description: packrat agent
   packrat agent

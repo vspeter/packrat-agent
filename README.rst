@@ -4,6 +4,37 @@ packrat-agent
 
 consumes packrat to build repos
 
+Setting up Apache
+-----------------
+
+aptitude install apache2
+a2dissite 000-default
+
+mkdir /var/www/repo
+
+
+/etc/apache2/sites-available/repo.conf 
+
+<VirtualHost *:80>
+    ServerName repo
+    ServerAlias repo.<domain>
+
+    DocumentRoot /var/www/repo
+
+    <Directory /var/www/repo/>
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride None
+        Order allow,deny
+        allow from all
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/repo_error.log
+    CustomLog ${APACHE_LOG_DIR}/repo_access.log combined
+</VirtualHost>
+
+a2ensite repo
+
+/etc/init.d/apache2 restart
 
 Setting up Signing
 ------------------
