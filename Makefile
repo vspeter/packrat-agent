@@ -6,19 +6,23 @@ install:
 	install -m 755 sbin/repoSync $(DESTDIR)usr/sbin
 
 clean:
-	rm -fr build
+	$(RM) -fr build
+	$(RM) -f dpkg
+
+full-clean: clean
 	dh_clean
 
-test:
+dpkg-distros:
+	echo trusty
 
-lint:
+dpkg-requires:
+	echo dpkg-dev debhelper cdbs
 
 dpkg:
 	dpkg-buildpackage -b -us -uc
-	dh_clean
+	touch dpkg
 
 dpkg-file:
 	@echo $(shell ls ../packrat-agent_*.deb)
 
-.PHONY: all clean test install lint dpkg
-
+.PHONY: all install clean dpkg-distros dpkg-requires dpkg-file
