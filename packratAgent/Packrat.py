@@ -41,8 +41,7 @@ class Packrat( object ):
     return self.cinp.list( '/api/v1/Repos/Package', 'repo-sync', { 'repo': repo_uri }, count=5000 )[ 0 ]
 
   def getPackageFiles( self, repo_uri, package_uri ): #TODO: iterate over all of the list chunks
-    uri_list = self.cinp.list( '/api/v1/Repos/PackageFile', 'repo-sync', { 'repo': repo_uri, 'package': package_uri }, count=5000 )[ 0 ]
-    return self.cinp.getObjects( uri_list=uri_list )
+    return self.cinp.getObjects( list_args={ 'uri': '/api/v1/Repos/PackageFile', 'filter': 'repo-sync', 'values': { 'repo': repo_uri, 'package': package_uri } } )
 
   def getDistroVersion( self, version_uri ): #TODO: make sure it is a distro version uri
     global DISTRO_VERSION_CACHE

@@ -67,7 +67,7 @@ class JSONManager( LocalRepoManager ):
     return os.path.exists( file_path )
 
   def writeMetadata( self ):
-    base_path = '%s/%s' % ( self.root_dir, self.component )
+    base_path = '%s/_repo_%s' % ( self.root_dir, self.component )
 
     if not os.path.exists( base_path ):
         os.makedirs( base_path )
@@ -104,7 +104,7 @@ class JSONManager( LocalRepoManager ):
       key = ctx.get_key( self.gpg_key )
       ctx.signers = [ key ]
 
-      base_path = '%s/%s' % ( self.root_dir, self.component )
+      base_path = '%s/_repo_%s' % ( self.root_dir, self.component )
 
       for distro in self.entry_list:
         for distro_version in self.entry_list[ distro ]:
