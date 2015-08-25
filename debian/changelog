@@ -1,3 +1,9 @@
+packrat-agent (0.4-1) trusty; urgency=medium
+
+  * JSON repo will detect some more specific file types
+
+ -- Peter <peter@blueboy>  Tue, 25 Aug 2015 09:46:34 -0600
+
 packrat-agent (0.3-1) trusty; urgency=medium
 
   * Improved YUM/RPM handeling
