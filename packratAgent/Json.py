@@ -6,12 +6,21 @@ import json
 
 from LocalRepoManager import LocalRepoManager, hashFile
 
+FILE_SUFIX_TYPES = {
+                      'tar': ( '.tar.gz', '.tar.bz2', '.tar.xz' ),
+                      'image': ( 'img.gz', 'img.bz2', 'img.xz' ),
+                      'respkg': ( 'respkg', )
+                   }
+
+
+
 def _splitFileName( filename ): # compare with packrat/Repos/Resource.py -> load
   filename = os.path.basename( filename )
 
   if filename.endswith( ( '.tar.gz', '.tar.bz2', '.tar.xz', 'img.gz', 'img.bz2', 'img.xz' ) ):
     ( filename, extension, extension2 ) = filename.rsplit( '.', 2 )
     extension = '%s.%s' % ( extension, extension2 )
+
   else:
     try:
       ( filename, extension ) = filename.rsplit( '.', 1 )
@@ -26,6 +35,16 @@ def _splitFileName( filename ): # compare with packrat/Repos/Resource.py -> load
 
   return ( package, version, extension )
 
+
+def _getType( type, filename ):
+  if type != 'rsc': # packrat sent us something special, keep it
+    return type
+
+  for item in FILE_SUFIX_TYPES:
+    if filename.endswith( FILE_SUFIX_TYPES[ item ] ):
+      return item
+
+  return type
 
 class JSONManager( LocalRepoManager ):
   def __init__( self, *args, **kargs ):
@@ -48,6 +67,8 @@ class JSONManager( LocalRepoManager ):
 
     if arch not in self.entry_list[ distro ][ distro_version ]:
       self.entry_list[ distro ][ distro_version ][ arch ] = {}
+
+    type = _getType( type, filename ) # the type we get here is passed down from packrat, which usually is generic, we need to get more specific
 
     self.entry_list[ distro ][ distro_version ][ arch ][ filename ] = ( file_path, type, sha1, sha256, md5, size )
 
