@@ -1,3 +1,9 @@
+packrat-agent (0.5-1) trusty; urgency=medium
+
+  * apt pool directory tweek
+
+ -- Peter <peter@blueboy>  Wed, 06 Jan 2016 14:03:31 -0700
+
 packrat-agent (0.4-1) trusty; urgency=medium
 
   * JSON repo will detect some more specific file types

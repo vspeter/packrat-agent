@@ -35,7 +35,9 @@ class AptManager( LocalRepoManager ):
         self.entry_list[ distro_version ][ tmp ] = {}
 
     logging.debug( 'apt: Got Entry for package: %s arch: %s distro: %s' % ( filename, arch, distro_version ) )
-    deb_path = 'pool/%s/%s' % ( filename[ 0:5 ], filename )
+    ( pool_dir, _ ) = filename.split( '_', 1 )
+    pool_dir = pool_dir[ 0:6 ]
+    deb_path = 'pool/%s/%s' % ( pool_dir, filename )
     full_deb_path = '%s/%s' % ( self.root_dir, deb_path )
     deb = Deb( full_deb_path )
     ( field_order, fields ) = deb.getControlFields()
@@ -59,7 +61,10 @@ class AptManager( LocalRepoManager ):
       self.entry_list[ distro_version ][ arch ][ filename ] = ( deb_path, sha1, sha256, md5, size, field_order, fields )
 
   def loadFile( self, filename, temp_file, distro, distro_version, arch ):
-    dir_path = '%s/pool/%s/' % ( self.root_dir, filename[ 0:5 ] )
+    ( pool_dir, _ ) = filename.split( '_', 1 )
+    pool_dir = pool_dir[ 0:6 ]
+
+    dir_path = '%s/pool/%s/' % ( self.root_dir, pool_dir )
     if not os.path.exists( dir_path ):
         os.makedirs( dir_path )
 
@@ -67,7 +72,10 @@ class AptManager( LocalRepoManager ):
     shutil.move( temp_file, file_path )
 
   def checkFile( self, filename, distro, distro_version, arch ):
-    deb_path = '%s/pool/%s/%s' % ( self.root_dir, filename[ 0:5 ], filename )
+    ( pool_dir, _ ) = filename.split( '_', 1 )
+    pool_dir = pool_dir[ 0:6 ]
+
+    deb_path = '%s/pool/%s/%s' % ( self.root_dir, pool_dir, filename )
     return os.path.exists( deb_path )
 
   def _writeArchMetadata( self, base_path, distro, arch, file_hashes, file_sizes ):
