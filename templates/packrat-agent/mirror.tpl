@@ -3,12 +3,12 @@
 # for device {{ description }}, id: {{ id }}
 
 [packrat]
-host: http://localhost:8000
+host: http://localhost/
 name: prod
 psk:  prod
 proxy:
 
 [repo]
-root_dir: /tmp/repo
+root_dir: /var/www/repo
 gpg_sign_key:
 {% endtarget %}
