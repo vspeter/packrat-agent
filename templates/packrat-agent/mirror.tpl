@@ -11,4 +11,5 @@ proxy:
 [repo]
 root_dir: /var/www/repo
 gpg_sign_key:
+style: combined
 {% endtarget %}

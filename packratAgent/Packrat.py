@@ -37,6 +37,9 @@ class Packrat( object ):
   def getRepo( self, repo_uri ): #TODO: make sure it is a repo URI
     return self.cinp.get( repo_uri )
 
+  def poll( self, repo_uri, timeput=30 ):
+    return self.cinp.call( )
+
   def getPackages( self, repo_uri ): #TODO: iterate over all of the chunks
     return self.cinp.list( '/api/v1/Repos/Package', 'repo-sync', { 'repo': repo_uri }, count=5000 )[ 0 ]
 
