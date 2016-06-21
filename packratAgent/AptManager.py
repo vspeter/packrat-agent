@@ -20,6 +20,25 @@ class AptManager( LocalRepoManager ):
     self.arch_list = ( 'i386', 'amd64' )
     self.entry_list = {}
 
+  def filePath( self, filename, distro, distro_version, arch ):
+    ( pool_dir, _ ) = filename.split( '_', 1 )
+    pool_dir = pool_dir[ 0:6 ]
+
+    return '%s/pool/%s/%s' % ( self.root_dir, pool_dir, filename )
+
+  def metadataFiles( self ):
+    result = []
+    for distro in self.distro_map[ 'debian' ]:
+      base_path = '%s/dists/%s' % ( self.root_dir, distro )
+      result.append( '%s/Release' % base_path )
+      result.append( '%s/Release.gpg' % base_path )
+
+      for arch in self.arch_list:
+        result.append( '%s/%s/binary-%s/Release' % ( base_path, self.component, arch ) )
+        result.append( '%s/%s/binary-%s/Packages' % ( base_path, self.component, arch ) )
+
+    return result
+
   def addEntry( self, type, filename, distro, distro_version, arch ):
     if type != 'deb':
       logging.warning( 'apt: New entry not a deb, skipping...' )
@@ -44,6 +63,7 @@ class AptManager( LocalRepoManager ):
 
     if arch == 'x86_64':
       arch = 'amd64'
+
     if arch != fields[ 'Architecture' ]:
       logging.warning( 'apt: New entry arch mismatched, skipping...' )
       return
@@ -60,6 +80,20 @@ class AptManager( LocalRepoManager ):
     for arch in arch_list:
       self.entry_list[ distro_version ][ arch ][ filename ] = ( deb_path, sha1, sha256, md5, size, field_order, fields )
 
+  def removeEntry( self, filename, distro, distro_version, arch ):
+    if arch == 'i386':
+      arch_list = ( 'i386', )
+    elif arch == 'x86_64':
+      arch_list = ( 'amd64', )
+    elif arch == 'all':
+      arch_list = ( 'i386', 'amd64' )
+
+    for arch in arch_list:
+      try:
+        del self.entry_list[ distro_version ][ arch ][ filename ]
+      except KeyError:
+        logging.warning( 'apt: unable to remove entry "%s" "%s" "%s" "%s", ignored.' % ( filename, distro, distro_version, arch ) )
+
   def loadFile( self, filename, temp_file, distro, distro_version, arch ):
     ( pool_dir, _ ) = filename.split( '_', 1 )
     pool_dir = pool_dir[ 0:6 ]
@@ -70,13 +104,6 @@ class AptManager( LocalRepoManager ):
 
     file_path = '%s%s' % ( dir_path, filename )
     shutil.move( temp_file, file_path )
-
-  def checkFile( self, filename, distro, distro_version, arch ):
-    ( pool_dir, _ ) = filename.split( '_', 1 )
-    pool_dir = pool_dir[ 0:6 ]
-
-    deb_path = '%s/pool/%s/%s' % ( self.root_dir, pool_dir, filename )
-    return os.path.exists( deb_path )
 
   def _writeArchMetadata( self, base_path, distro, arch, file_hashes, file_sizes ):
     dir_path = '%s/%s/binary-%s' % ( base_path, self.component, arch )
@@ -98,7 +125,11 @@ class AptManager( LocalRepoManager ):
     file_path = '%s/binary-%s/Packages' % ( self.component, arch )
     full_path = '%s/%s' % ( base_path, file_path )
     wrk = open( full_path, 'w' )
-    for filename in self.entry_list[ distro ][ arch ]:
+    try:
+      filename_list = self.entry_list[ distro ][ arch ]
+    except KeyError:
+      filename_list = []
+    for filename in filename_list:
       logging.debug( 'apt: Writing package %s' % filename )
       ( deb_path, sha1, sha256, md5, size, field_order, fields ) = self.entry_list[ distro ][ arch ][ filename ]
 
@@ -123,7 +154,7 @@ class AptManager( LocalRepoManager ):
     file_hashes = {}
     file_sizes = {}
 
-    for distro in self.entry_list:
+    for distro in self.distro_map[ 'debian' ]:
       logging.debug( 'apt: Writing distro %s' % distro )
       base_path = '%s/dists/%s' % ( self.root_dir, distro )
       if not os.path.exists( base_path ):

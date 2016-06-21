@@ -24,10 +24,8 @@ set -e
 
 case "$1" in
     configure)
-        echo "Rebuilding config files..."
         /usr/sbin/configManager -c packrat-agent
-
-        echo "Reloading cron..."
+        mkdir -p /var/lib/packratAgent
         /etc/init.d/cron reload || true
     ;;
 
@@ -41,4 +39,3 @@ case "$1" in
 esac
 
 exit 0
-

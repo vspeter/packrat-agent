@@ -49,7 +49,23 @@ def _getType( type, filename ):
 class JSONManager( LocalRepoManager ):
   def __init__( self, *args, **kargs ):
     super( JSONManager, self ).__init__( *args, **kargs )
+    self.arch_list = ( 'all', )
     self.entry_list = {}
+
+  def filePath( self, filename, distro, distro_version, arch ):
+    ( package, version, _ ) = _splitFileName( filename )
+    return '%s/%s/%s' % ( self.root_dir, package, filename )
+
+  def metadataFiles( self ):
+    result = []
+    base_path = '%s/_repo_%s' % ( self.root_dir, self.component )
+    for distro in self.distro_map:
+      for distro_version in self.distro_map[ distro ]:
+        for arch in self.arch_list:
+          result.append( '%s/MANIFEST_%s-%s-%s.json' % ( base_path, distro, distro_version, arch ) )
+          result.append( '%s/MANIFEST_%s-%s-%s.json.gpg' % ( base_path, distro, distro_version, arch ) )
+
+    return result
 
   def addEntry( self, type, filename, distro, distro_version, arch ):
     logging.debug( 'json: Got Entry for package: %s arch: %s distro: %s' % ( filename, arch, distro_version ) )
@@ -72,6 +88,12 @@ class JSONManager( LocalRepoManager ):
 
     self.entry_list[ distro ][ distro_version ][ arch ][ filename ] = ( file_path, type, sha1, sha256, md5, size )
 
+  def removeEntry( self, filename, distro, distro_version, arch ):
+    try:
+      del self.entry_list[ distro ][ distro_version ][ arch ][ filename ]
+    except KeyError:
+      logging.warning( 'json: unable to remove entry "%s" "%s" "%s" "%s", ignored.' % ( filename, distro, distro_version, arch ) )
+
   def loadFile( self, filename, temp_file, distro, distro_version, arch ):
     ( package, _, _ ) = _splitFileName( filename )
     dir_path = '%s/%s/' % ( self.root_dir, package )
@@ -82,36 +104,36 @@ class JSONManager( LocalRepoManager ):
     file_path = '%s%s' % ( dir_path, filename )
     shutil.move( temp_file, file_path )
 
-  def checkFile( self, filename, distro, distro_version, arch ):
-    ( package, version, _ ) = _splitFileName( filename )
-    file_path = '%s/%s/%s' % ( self.root_dir, package, filename )
-    return os.path.exists( file_path )
-
   def writeMetadata( self ):
     base_path = '%s/_repo_%s' % ( self.root_dir, self.component )
 
     if not os.path.exists( base_path ):
         os.makedirs( base_path )
 
-    for distro in self.entry_list:
-      for distro_version in self.entry_list[ distro ]:
-        for arch in self.entry_list[ distro ][ distro_version ]:
+    for distro in self.distro_map:
+      for distro_version in self.distro_map[ distro ]:
+        for arch in self.arch_list:
           logging.debug( 'json: Writing distro %s, distro version %s, arch %s' % ( distro, distro_version, arch ) )
           data = {}
-          for filename in self.entry_list[ distro ][ distro_version ][ arch ]:
+          try:
+            filename_list = self.entry_list[ distro ][ distro_version ][ arch ]
+          except KeyError:
+            filename_list = []
+
+          for filename in filename_list:
             entry = self.entry_list[ distro ][ distro_version ][ arch ][ filename ]
             ( package, version, _ ) = _splitFileName( filename )
             if package not in data:
               data[ package ] = []
 
             data[ package ].append( {
-                                     'version': version,
-                                     'path': entry[0],
-                                     'type': entry[1],
-                                     'sha1': entry[2],
-                                     'sha256': entry[3],
-                                     'md5': entry[4],
-                                     'size': entry[5]
+                                      'version': version,
+                                      'path': entry[0],
+                                      'type': entry[1],
+                                      'sha1': entry[2],
+                                      'sha256': entry[3],
+                                      'md5': entry[4],
+                                      'size': entry[5]
                                      } )
 
           wrk = open( '%s/MANIFEST_%s-%s-%s.json' % ( base_path, distro, distro_version, arch ), 'w' )

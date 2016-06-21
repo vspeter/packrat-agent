@@ -7,83 +7,52 @@ import ConfigParser
 import logging
 import time
 from packratAgent.libdaemon import Daemon
+from packratAgent.libRepo import FileSystemMirror
 from packratAgent.Packrat import Packrat
-from packratAgent.Apt import AptManager
-from packratAgent.Yum import YUMManager
-from packratAgent.Yast import YaSTManager
-from packratAgent.Json import JSONManager
 
 
 class PackratAgent( Daemon ):
   def __init__( self, interactive ):
     super( PackratAgent, self ).__init__( 'packratAgent', '/var/run/packratAgent.pid', interactive, '/var/log/packratAgent.err' )
-    self.gpg_key = None
-    self.repos = {}
-    self.style = 'combined'
-
-  def updateRepo( self, repo_uri, package_list=None ):
-    repo = self.repos[ repo_uri ]
-    logging.info( 'Update repo "%s"' % repo[ 'description' ] )
-    if repo[ 'manager_type' ] == 'apt':
-      manager = AptManager( '%s/apt/%s' % ( self.root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], self.mirror[ 'description' ], self.gpg_key )
-    elif repo[ 'manager_type' ] == 'yum':
-      manager = YUMManager( '%s/yum/%s' % ( self.root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], self.mirror[ 'description' ], self.gpg_key )
-    elif repo[ 'manager_type' ] == 'yast':
-      manager = YaSTManager( '%s/yast/%s' % ( self.root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], self.mirror[ 'description' ], self.gpg_key )
-    elif repo[ 'manager_type' ] == 'json':
-      manager = JSONManager( '%s/json/%s' % ( self.root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], self.mirror[ 'description' ], self.gpg_key )
-    else:
-      logging.warning( 'Unknown Manager Type "%s", skipped.' % repo[ 'manager_type' ] )
-      return
-
-    if package_list is None:
-      package_list = self.packrat.getPackages( repo_uri )
-
-    for package_uri in package_list:
-      logging.debug( 'Checking Package "%s"' % package_uri )
-      file_list = self.packrat.getPackageFiles( repo_uri, package_uri )
-
-      for file in file_list:
-        file = file_list[ file ]
-        basename = os.path.basename( file[ 'file' ] )
-        distro = self.packrat.getDistroVersion( file[ 'distroversion' ] ) # should cache this too
-
-        if not manager.checkFile( basename, distro[ 'distro' ], distro[ 'version' ], file[ 'arch' ] ):
-          logging.debug( 'Retrieving "%s"...' % basename )
-          wrkfile = self.packrat.getFile( file[ 'file' ] )
-          manager.loadFile( basename, wrkfile, distro[ 'distro' ], distro[ 'version' ], file[ 'arch' ] )
-
-        manager.addEntry( file[ 'type' ], basename, distro[ 'distro' ], distro[ 'version' ], file[ 'arch' ] )
-
-    logging.debug( 'Writing Metadata...' )
-    manager.writeMetadata()
-
-  def main( self ):
+    self.mirror = None
+    self.full_sync_interval = 900
     self.cont = True
 
+  def main( self ):
+    count = -1
     logging.info( 'Starting...' )
+    if not self.cont:
+      return True
 
+    logging.info( 'Starting Pollers...' )
+    self.mirror.startPollers()
     logging.info( 'Running...' )
     while self.cont:
-      self.repos = {}
-      self.packrat.syncStart()
-      self.mirror = self.packrat.getMirror()
-      for repo_uri in self.mirror[ 'repo_list' ]:
-        self.repos[ repo_uri ] = self.packrat.getRepo( repo_uri )
+      count = ( count + 1 ) % 8
+      logging.debug( 'Full Sync...' )
+      if not self.mirror.fullSync( count == 0 ):
+        logging.error( 'Sync Failed, bailing...' )
+        self.do_stop()
 
-      for repo_uri in self.repos:
-        self.updateRepo( repo_uri )
+      if not self.mirror.checkPollers():
+        logging.error( 'Poller(s) died, bailing...' )
+        self.do_stop()
 
-      self.packrat.syncComplete()
+      if not self.cont: # sometimes fullSync can take a while
+        break
 
-      time.sleep( 600 )
+      time.sleep( self.full_sync_interval )
 
+    logging.info( 'Waiting for Pollers...' )
+    self.mirror.waitForPollers()
     logging.info( 'Done.' )
     return True
 
   def do_stop( self ):
     logging.info( 'Stopping...' )
     self.cont = False
+    if self.mirror is not None:
+      self.mirror.stopPollers()
 
   def do_loadconfig( self ):
     logging.info( 'Loading Config...' )
@@ -98,40 +67,50 @@ class PackratAgent( Daemon ):
       return False
 
     try:
-      self.packrat = Packrat( config.get( 'packrat', 'host' ), config.get( 'packrat', 'proxy' ), config.get( 'packrat', 'name' ), config.get( 'packrat', 'psk' ) )
+      packrat = Packrat( config.get( 'packrat', 'host' ), config.get( 'packrat', 'proxy' ), config.get( 'packrat', 'name' ), config.get( 'packrat', 'psk' ) )
     except ConfigParser.Error as e:
       logging.exception( 'Error retreiving host, proxy, name, and/or psk from config file' )
       return False
 
     try:
-      self.root_dir = config.get( 'repo', 'root_dir' )
+      self.full_sync_interval = config.getint( 'mirror', 'full_sync_interval' )
+    except ConfigParser.Error as e:
+      logging.exception( 'Error retreiving full_syn_interval from config file' )
+      return False
+
+    try:
+      description = config.get( 'mirror', 'description' )
+    except ConfigParser.Error as e:
+      logging.exception( 'Error retreiving description from config file' )
+      return False
+
+    try:
+      state_db = config.get( 'mirror', 'state_db' )
+    except ConfigParser.Error as e:
+      logging.exception( 'Error retreiving repo_db from config file' )
+      return False
+
+    try:
+      root_dir = config.get( 'mirror', 'root_dir' )
     except ConfigParser.Error as e:
       logging.exception( 'Error retreiving root_dir from config file' )
       return False
 
     try:
-      self.gpg_key = config.get( 'repo', 'gpg_sign_key' )
-      if not self.gpg_key:
-        self.gpg_key = None
+      gpg_key = config.get( 'mirror', 'gpg_sign_key' )
+      if not gpg_key:
+        gpg_key = None
     except ConfigParser.Error as e:
-      self.gpg_key = None
+      gpg_key = None
 
-    try:
-      self.style = config.get( 'mirror', 'style' )
-      if not self.style:
-        self.style = 'combined'
-    except ConfigParser.Error as e:
-      self.style = 'combined'
-
-    if self.style not in ( 'combined', 'split' ):
-      logging.error( 'Style is not "combined" nor "split"' )
-      self.style = None
-      return False
+    self.mirror = FileSystemMirror( packrat, state_db, root_dir, gpg_key, description )
 
     return True
 
+
 def print_usage():
   print 'Usage %s {interactive|start|stop|kill|restart|reload_config|status}' % sys.argv[0]
+
 
 try:
   mode = sys.argv[1]
