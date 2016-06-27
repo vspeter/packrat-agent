@@ -14,6 +14,26 @@ class YUMManager( LocalRepoManager ):
     self.arch_list = ( 'x86_64', 'i386' )
     self.entry_list = {}
 
+  def filePath( self, filename, distro, distro_version, arch ):
+    if arch == 'all':
+      arch = 'noarch'
+
+    return '%s/%s/%s/%s/%s/%s' % ( self.root_dir, distro, self.component, distro_version, arch, filename )
+
+  def metadataFiles( self ):
+    result = []
+    for distro in self.distro_map:
+      for distro_version in self.distro_map[ distro ]:
+        base_path = '%s/%s/%s/%s' % ( self.root_dir, distro, self.component, distro_version )
+        dir_path = '%s/repodata' % base_path
+        result.append( '%s/other.xml' % dir_path )
+        result.append( '%s/filelists.xml' % dir_path )
+        result.append( '%s/primary.xml' % dir_path )
+        result.append( '%s/repomd.xml' % dir_path )
+        result.append( '%s/repomd.xml.asc' % dir_path )
+
+    return result
+
   def addEntry( self, type, filename, distro, distro_version, arch ):
     if type != 'rpm':
       logging.warning( 'yum: New entry not a rpm, skipping...' )
@@ -35,6 +55,15 @@ class YUMManager( LocalRepoManager ):
     full_rpm_path = '%s/%s/%s/%s/%s/%s' % ( self.root_dir, distro, self.component, distro_version, arch, filename )
     self.entry_list[ distro ][ distro_version ][ filename ] = ( full_rpm_path, arch )
 
+  def removeEntry( self, filename, distro, distro_version, arch ):
+    if arch == 'all':
+      arch = 'noarch'
+
+    try:
+      del self.entry_list[ distro ][ distro_version ][ filename ]
+    except KeyError:
+      logging.warning( 'rpm: unable to remove entry "%s" "%s" "%s" "%s", ignored.' % ( filename, distro, distro_version, arch ) )
+
   def loadFile( self, filename, temp_file, distro, distro_version, arch ):
     if arch == 'all':
       arch = 'noarch'
@@ -52,13 +81,6 @@ class YUMManager( LocalRepoManager ):
 
     shutil.move( temp_file, file_path )
 
-  def checkFile( self, filename, distro, distro_version, arch ):
-    if arch == 'all':
-      arch = 'noarch'
-
-    rpm_path = '%s/%s/%s/%s/%s/%s' % ( self.root_dir, distro, self.component, distro_version, arch, filename )
-    return os.path.exists( rpm_path )
-
   def _writeArchMetadata( self, base_path, distro, distro_version ):
     timestamp = int( time.time() )
     repo_files = []
@@ -66,22 +88,27 @@ class YUMManager( LocalRepoManager ):
     if not os.path.exists( dir_path ):
       os.makedirs( dir_path )
 
+    try:
+      filename_list = self.entry_list[ distro ][ distro_version ]
+    except KeyError:
+      filename_list = []
+
     other_full_path = '%s/other.xml' % dir_path
     other_fd = open( other_full_path, 'w' )
     other_fd.write( '<?xml version="1.0" encoding="UTF-8"?>\n' )
-    other_fd.write( '<otherdata xmlns="http://linux.duke.edu/metadata/other" packages="%s">\n' % len( self.entry_list[ distro ][ distro_version ] ) )
+    other_fd.write( '<otherdata xmlns="http://linux.duke.edu/metadata/other" packages="%s">\n' % len( filename_list ) )
 
     filelists_full_path = '%s/filelists.xml' % dir_path
     filelists_fd = open( filelists_full_path, 'w' )
     filelists_fd.write( '<?xml version="1.0" encoding="UTF-8"?>\n' )
-    filelists_fd.write( '<filelists xmlns="http://linux.duke.edu/metadata/filelists" packages="%s">\n' % len( self.entry_list[ distro ][ distro_version ] ) )
+    filelists_fd.write( '<filelists xmlns="http://linux.duke.edu/metadata/filelists" packages="%s">\n' % len( filename_list ) )
 
     primary_full_path = '%s/primary.xml' % dir_path
     primary_fd = open( primary_full_path, 'w' )
     primary_fd.write( '<?xml version="1.0" encoding="UTF-8"?>\n' )
-    primary_fd.write( ( '<metadata packages="%s" xmlns="http://linux.duke.edu/metadata/common" xmlns:rpm="http://linux.duke.edu/metadata/rpm">\n' ) % len( self.entry_list[ distro ][ distro_version ] ) )
+    primary_fd.write( ( '<metadata packages="%s" xmlns="http://linux.duke.edu/metadata/common" xmlns:rpm="http://linux.duke.edu/metadata/rpm">\n' ) % len( filename_list ) )
 
-    for filename in self.entry_list[ distro ][ distro_version ]:
+    for filename in filename_list:
       ( full_rpm_path, arch ) = self.entry_list[ distro ][ distro_version ][ filename ]
       pkg = YumLocalPackage( filename=full_rpm_path )
       pkg._reldir = base_path
@@ -123,8 +150,8 @@ class YUMManager( LocalRepoManager ):
     repomod_fd.close()
 
   def writeMetadata(self):
-    for distro in self.entry_list:
-      for distro_version in self.entry_list[ distro ]:
+    for distro in self.distro_map:
+      for distro_version in self.distro_map[ distro ]:
         base_path = '%s/%s/%s/%s' % ( self.root_dir, distro, self.component, distro_version )
         self._writeArchMetadata( base_path, distro, distro_version )
 

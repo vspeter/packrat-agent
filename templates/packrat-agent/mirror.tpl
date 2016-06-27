@@ -3,12 +3,15 @@
 # for device {{ description }}, id: {{ id }}
 
 [packrat]
-host: http://localhost/
-name: prod
-psk:  prod
-proxy:
+host: {{ packrat_master_host }}
+name: {{ packrat_repo_name }}
+psk: {{ packrat_repo_psk }}
+proxy: {{ packrat_master_proxy }}
 
-[repo]
+[mirror]
+description: {{ pod }}-mirror
 root_dir: /var/www/repo
 gpg_sign_key:
+state_db: /var/lib/packratAgent/state.db
+full_sync_interval: 900
 {% endtarget %}

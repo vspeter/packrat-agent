@@ -5,91 +5,151 @@ import os
 from optparse import OptionParser
 import ConfigParser
 import logging
+import time
+from packratAgent.libdaemon import Daemon
+from packratAgent.libRepo import FileSystemMirror
 from packratAgent.Packrat import Packrat
-from packratAgent.Apt import AptManager
-from packratAgent.Yum import YUMManager
-from packratAgent.Yast import YaSTManager
-from packratAgent.Json import JSONManager
 
-oparser = OptionParser( description='Repo Mirror Sync' )
 
-oparser.add_option( '-v', '--verbose', dest='verbose', default=False, action='store_true' )
+class PackratAgent( Daemon ):
+  def __init__( self, interactive ):
+    super( PackratAgent, self ).__init__( 'packratAgent', '/var/run/packratAgent.pid', interactive, '/var/log/packratAgent.err' )
+    self.mirror = None
+    self.full_sync_interval = 900
+    self.cont = True
 
-( options, args ) = oparser.parse_args()
+  def main( self ):
+    count = -1
+    logging.info( 'Starting...' )
+    if not self.cont:
+      return True
 
-logging.basicConfig()
-logger = logging.getLogger()
+    logging.info( 'Starting Pollers...' )
+    self.mirror.startPollers()
+    logging.info( 'Running...' )
+    while self.cont:
+      count = ( count + 1 ) % 8
+      logging.debug( 'Full Sync...' )
+      if not self.mirror.fullSync( count == 0 ):
+        logging.error( 'Sync Failed, bailing...' )
+        self.do_stop()
 
-if options.verbose:
-  logger.setLevel(logging.DEBUG)
+      if not self.mirror.checkPollers():
+        logging.error( 'Poller(s) died, bailing...' )
+        self.do_stop()
 
-config_file = ConfigParser.ConfigParser()
+      if not self.cont: # sometimes fullSync can take a while
+        break
+
+      time.sleep( self.full_sync_interval )
+
+    logging.info( 'Waiting for Pollers...' )
+    self.mirror.waitForPollers()
+    logging.info( 'Done.' )
+    return True
+
+  def do_stop( self ):
+    logging.info( 'Stopping...' )
+    self.cont = False
+    if self.mirror is not None:
+      self.mirror.stopPollers()
+
+  def do_loadconfig( self ):
+    logging.info( 'Loading Config...' )
+    config = ConfigParser.ConfigParser()
+    try:
+      if not config.read( '/etc/packrat/mirror.conf' ):
+        logging.critical( 'Error opening config file' )
+        return False
+
+    except:
+      logging.exception( 'Error Parsing config file' )
+      return False
+
+    try:
+      packrat = Packrat( config.get( 'packrat', 'host' ), config.get( 'packrat', 'proxy' ), config.get( 'packrat', 'name' ), config.get( 'packrat', 'psk' ) )
+    except ConfigParser.Error as e:
+      logging.exception( 'Error retreiving host, proxy, name, and/or psk from config file' )
+      return False
+
+    try:
+      self.full_sync_interval = config.getint( 'mirror', 'full_sync_interval' )
+    except ConfigParser.Error as e:
+      logging.exception( 'Error retreiving full_syn_interval from config file' )
+      return False
+
+    try:
+      description = config.get( 'mirror', 'description' )
+    except ConfigParser.Error as e:
+      logging.exception( 'Error retreiving description from config file' )
+      return False
+
+    try:
+      state_db = config.get( 'mirror', 'state_db' )
+    except ConfigParser.Error as e:
+      logging.exception( 'Error retreiving repo_db from config file' )
+      return False
+
+    try:
+      root_dir = config.get( 'mirror', 'root_dir' )
+    except ConfigParser.Error as e:
+      logging.exception( 'Error retreiving root_dir from config file' )
+      return False
+
+    try:
+      gpg_key = config.get( 'mirror', 'gpg_sign_key' )
+      if not gpg_key:
+        gpg_key = None
+    except ConfigParser.Error as e:
+      gpg_key = None
+
+    self.mirror = FileSystemMirror( packrat, state_db, root_dir, gpg_key, description )
+
+    return True
+
+
+def print_usage():
+  print 'Usage %s {interactive|start|stop|kill|restart|reload_config|status}' % sys.argv[0]
+
 
 try:
-  config_file.read( '/etc/packrat/mirror.conf' )
-except ConfigParser.Error as e:
-  print 'Error reading config file:'
-  print e
+  mode = sys.argv[1]
+except IndexError:
+  print_usage()
   sys.exit( 1 )
 
-try:
-  packrat = Packrat( config_file.get( 'packrat', 'host' ), config_file.get( 'packrat', 'proxy' ), config_file.get( 'packrat', 'name' ), config_file.get( 'packrat', 'psk' ) )
-except ConfigParser.Error as e:
-  print 'Error retreiving host, proxy, name, and/or psk from config file'
-  sys.exit( 1 )
+interactive = ( mode == 'interactive' )
 
-try:
-  root_dir = config_file.get( 'repo', 'root_dir' )
-except ConfigParser.Error as e:
-  print 'Error retreiving root_dir from config file'
-  sys.exit( 1 )
+daemon = PackratAgent( interactive )
 
-try:
-  gpg_key = config_file.get( 'repo', 'gpg_sign_key' )
-  if not gpg_key:
-    gpg_key = None
-except ConfigParser.Error as e:
-  gpg_key = None
+if mode == 'stop':
+  if not daemon.stop():
+    sys.exit( 1 )
+  sys.exit( 0 )
 
-mirror = packrat.getMirror()
-print 'Last Sync was from %s to %s' % ( mirror[ 'last_sync_start' ], mirror[ 'last_sync_complete' ] )
+if mode == 'kill':
+  if not daemon.kill():
+    sys.exit( 1 )
+  sys.exit( 0 )
 
-packrat.syncStart()
+if mode == 'status':
+  print 'Status: %s' % daemon.status()
+  sys.exit( 0 )
 
-print 'Processing Repos....'
-for repo_uri in mirror[ 'repo_list' ]:
-  repo = packrat.getRepo( repo_uri )
-  print 'Processing repo "%s"' % repo[ 'description' ]
-  if repo[ 'manager_type' ] == 'apt':
-    manager = AptManager( '%s/apt/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ], gpg_key )
-  elif repo[ 'manager_type' ] == 'yum':
-    manager = YUMManager( '%s/yum/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ], gpg_key )
-  elif repo[ 'manager_type' ] == 'yast':
-    manager = YaSTManager( '%s/yast/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ], gpg_key )
-  elif repo[ 'manager_type' ] == 'json':
-    manager = JSONManager( '%s/json/%s' % ( root_dir, repo[ 'release_type' ] ), 'main', repo[ 'description' ], mirror[ 'description' ], gpg_key )
-  else:
-    print 'Unknown Manager Type "%s", skipped.' % repo[ 'manager_type' ]
-    continue
+if mode == 'restart':
+  if not daemon.restart():
+    sys.exit( 1 )
+  sys.exit( 0 )
 
-  for package_uri in packrat.getPackages( repo_uri ):
-    print '  Checking Package "%s"' % package_uri
-    file_list = packrat.getPackageFiles( repo_uri, package_uri )
+if mode == 'reload_config':
+  if not daemon.reload_config():
+    sys.exit( 1 )
+  sys.exit( 0 )
 
-    for file in file_list:
-      file = file_list[ file ]
-      basename = os.path.basename( file[ 'file' ] )
-      distro = packrat.getDistroVersion( file[ 'distroversion' ] )
+if interactive or mode == 'start':
+  if not daemon.start():
+    sys.exit( 1 )
+  sys.exit( 0 )
 
-      if not manager.checkFile( basename, distro[ 'distro' ], distro[ 'version' ], file[ 'arch' ] ):
-        print '    Retrieving "%s"...' % basename
-        wrkfile = packrat.getFile( file[ 'file' ] )
-        manager.loadFile( basename, wrkfile, distro[ 'distro' ], distro[ 'version' ], file[ 'arch' ] )
-
-      manager.addEntry( file[ 'type' ], basename, distro[ 'distro' ], distro[ 'version' ], file[ 'arch' ] )
-
-  print '  Writing Metadata...'
-  manager.writeMetadata()
-
-packrat.syncComplete()
-print 'Done!'
+print_usage()
+sys.exit( 1 )
