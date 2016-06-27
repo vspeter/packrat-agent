@@ -1,3 +1,11 @@
+packrat-agent (0.6-1) trusty; urgency=medium
+
+  * local state cached in the sqlite
+  * local checks aginst sha256s from packrat
+  * poller for instant updates
+
+ -- Peter <peter@blueboy>  Mon, 27 Jun 2016 07:44:09 -0600
+
 packrat-agent (0.5-1) trusty; urgency=medium
 
   * apt pool directory tweek
