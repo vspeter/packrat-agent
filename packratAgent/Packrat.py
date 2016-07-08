@@ -1,5 +1,6 @@
 import logging
 import os
+import stat
 #import time
 import tempfile
 #from threading import Thread
@@ -45,6 +46,7 @@ class Packrat( object ):
     logging.debug( 'Packrat: File URL: "%s"' % url )
 
     ( fd, file_path ) = tempfile.mkstemp( prefix='packrat-' )
+    os.fchmod( fd, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH )
     tmpfile = os.fdopen( fd, 'w' )
     self.cinp.getFile( url, tmpfile, timeout=timeout )
     tmpfile.close()

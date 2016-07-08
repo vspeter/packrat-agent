@@ -103,7 +103,12 @@ class PackratAgent( Daemon ):
     except ConfigParser.Error as e:
       gpg_key = None
 
-    self.mirror = FileSystemMirror( packrat, state_db, root_dir, gpg_key, description )
+    keep_file_list = []
+    for ( key, value ) in config.items( 'mirror' ):
+      if key == 'keep_file':
+        keep_file_list.append( value )
+
+    self.mirror = FileSystemMirror( packrat, state_db, root_dir, gpg_key, description, keep_file_list )
 
     return True
 

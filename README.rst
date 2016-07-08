@@ -40,7 +40,7 @@ Enable the repo Site::
   /etc/init.d/apache2 restart
 
 
-Next edit /etc/packrat/mirror.conf, set the host to the master packrat server, set the name and psk to the name and psk in the mirror entry on packrat, 
+Next edit /etc/packrat/mirror.conf, set the host to the master packrat server, set the name and psk to the name and psk in the mirror entry on packrat,
 if you need to use a proxy to get to the master packrat server, put that in.  If you did not use /var/www/repo as your http root directory, set root_dir
 to you http root directory.
 
@@ -80,21 +80,14 @@ This will list our newly created key, there are two parts to the key the Private
 out of your control, and keep it backed up, otherwise re-keying all the subscribers to the repo will be painfull.  The other key is the Public Key (labeld with (pub)).
 edit /etc/packrat/mirror.conf and enter the hash ( ie: 6F9893FE ) as the gpg_sign_key.  Now export the public key::
 
-  gpg --armor --output /var/www/repo-key --export < the pub ie: B2CAFB61 >
+  gpg --armor --output /var/www/repo/repo-key --export < the pub ie: B2CAFB61 >
 
-the path `/var/www/repo-key` should be where http clients can get to and download it, it is recomened to put it in the root of the http root directory.  Now we can
-force a sync and make sure we get what we expect.
+the path `/var/www/repo-key` should be where http clients can get to and download it, it is recomened to put it in the root of the http root directory.
 
-  repoSync
- 
-you should get something like::
+restart repoSyc/packratAgent  you should now see messages like ::
 
-  Last Sync was from None to None
-  Processing Repos....  
-  Processing repo "APT - Production"
-    Writing Metadata...
-  Processing repo "YUM - Production"
-    Writing Metadata...
-  Done!
+  INFO:root:apt: Signing distro precise
+  INFO:root:apt: Signing distro trusty
+  INFO:root:apt: Signing distro xenial
 
-you are all set
+in your logs

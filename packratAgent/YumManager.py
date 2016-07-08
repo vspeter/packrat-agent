@@ -80,6 +80,8 @@ class YUMManager( LocalRepoManager ):
         raise Exception( 'Error Signing "%s"' % temp_file )
 
     shutil.move( temp_file, file_path )
+    ( _, sha256, _ ) = hashFile( file_path )
+    return sha256
 
   def _writeArchMetadata( self, base_path, distro, distro_version ):
     timestamp = int( time.time() )
