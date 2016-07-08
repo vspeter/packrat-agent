@@ -1,3 +1,12 @@
+packrat-agent (0.7-1) trusty; urgency=medium
+
+  * chmod 644 new Packagefile
+  * list of extra files not to prune
+  * directory from packrat
+  * sha256 of signed files retained
+
+ -- Peter <peter@blueboy>  Fri, 08 Jul 2016 08:53:06 -0600
+
 packrat-agent (0.6-1) trusty; urgency=medium
 
   * local state cached in the sqlite

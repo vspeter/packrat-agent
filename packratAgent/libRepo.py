@@ -76,26 +76,29 @@ class FileSystemRepo( object ):
     self.poller = None
 
     if self.manager_type == 'apt':
-      self.manager = AptManager( os.path.join( self.root_dir, self.name ), self.component, self.description, self.mirror_description, distro_map, self.gpg_key )
+      self.manager = AptManager( self.root_dir, self.component, self.description, self.mirror_description, distro_map, self.gpg_key )
 
     elif self.manager_type == 'yum':
-      self.manager = YUMManager( os.path.join( self.root_dir, self.name ), self.component, self.description, self.mirror_description, distro_map, self.gpg_key )
+      self.manager = YUMManager( self.root_dir, self.component, self.description, self.mirror_description, distro_map, self.gpg_key )
 
     elif self.manager_type == 'yast':
-      self.manager = YaSTManager( os.path.join( self.root_dir, self.name ), self.component, self.description, self.mirror_description, distro_map, self.gpg_key )
+      self.manager = YaSTManager( self.root_dir, self.component, self.description, self.mirror_description, distro_map, self.gpg_key )
 
     elif self.manager_type == 'json':
-      self.manager = JSONManager( os.path.join( self.root_dir, self.name ), self.component, self.description, self.mirror_description, distro_map, self.gpg_key )
+      self.manager = JSONManager( self.root_dir, self.component, self.description, self.mirror_description, distro_map, self.gpg_key )
 
     else:
       raise RepoException( 'Unknown Manager Type "%s".' % self.manager_type )
 
   def checkFiles( self, file_list ): # checks sha256 and file existance, removes file and entry upon problem
-    for ( filename, distro, distro_version, arch, sha256 ) in file_list:
+    for ( filename, distro, distro_version, arch, sha256, signed256 ) in file_list:
       file_path = self.manager.filePath( filename, distro, distro_version, arch )
       ( _, file_sha256, _ ) = hashFile( file_path )
       if file_sha256 is None: # file dosen't exist, no point trying to delete it
         continue
+
+      if signed256 is not None:
+        sha256 = signed256
 
       if sha256 != file_sha256:
         logging.info( 'libRepo: hash for "%s" is "%s" expected "%s", removing.' % ( file_path, file_sha256, sha256 ) )
@@ -121,10 +124,11 @@ class FileSystemRepo( object ):
   def addFile( self, wrk_file_path, file_type, filename, distro, distro_version, arch ):
     logging.debug( 'libRepo: Acquiring update lock for repo during addFile "%s"' % self.name )
     self.update_lock.acquire()
-    self.manager.loadFile( filename, wrk_file_path, distro, distro_version, arch )
+    sha256 = self.manager.loadFile( filename, wrk_file_path, distro, distro_version, arch )
     self.manager.addEntry( file_type, filename, distro, distro_version, arch )
     self.update_lock.release()
     logging.debug( 'libRepo: Released update lock for repo during addFile "%s"' % self.name )
+    return sha256
 
   def removeEntry( self, filename, distro, distro_version, arch ):
     logging.debug( 'libRepo: Acquiring update lock for repo during removeEntry "%s"' % self.name )
@@ -162,7 +166,7 @@ class FileSystemRepo( object ):
     return self.poller is not None and self.poller.isAlive()
 
 class FileSystemMirror( object ):
-  def __init__( self, packrat, state_db, root_dir, gpg_key, description ):
+  def __init__( self, packrat, state_db, root_dir, gpg_key, description, keep_file_list ):
     self.packrat = packrat
     self.root_dir = root_dir
     self.description = description
@@ -171,11 +175,12 @@ class FileSystemMirror( object ):
     self.conn = sqlite3.connect( state_db )
     self.repos = {}
     self.distroversion_map = {}
+    self.keep_file_list = keep_file_list
 
     cur = self.conn.cursor()
-    cur.execute( 'SELECT "name", "manager", "description", "distro_map" FROM "repos";' )
-    for ( name, manager, description, distro_map ) in cur.fetchall():
-      self._setupRepo( name, manager, description, json.loads( distro_map ) )
+    cur.execute( 'SELECT "name", "filesystem_dir", "manager", "description", "distro_map" FROM "repos";' )
+    for ( name, filesystem_dir, manager, description, distro_map ) in cur.fetchall():
+      self._setupRepo( name, filesystem_dir, manager, description, json.loads( distro_map ) )
     cur.close()
 
   def fullSync( self, do_full_clean ):
@@ -184,7 +189,7 @@ class FileSystemMirror( object ):
     self._syncMasterToLocalState()
     if do_full_clean: # this is expensive, and could cause problems with running pollers, hopfully the full sync right after fixes anything that could be lost for a bit
       logging.debug( 'libRepo: do_full_clean' )
-      expected_file_list = []
+      expected_file_list = self.keep_file_list
       cur = self.conn.cursor()
       cur.execute( 'SELECT "repo", "filename", "distro", "distro_version", "arch" FROM "files"' )
       for ( repo_name, filename, distro, distro_version, arch ) in cur.fetchall():
@@ -236,9 +241,9 @@ class FileSystemMirror( object ):
     for repo_name in self.repos:
       self.repos[ repo_name ].joinPoller()
 
-  def _setupRepo( self, repo_name, manager_type, description, distro_map ):
+  def _setupRepo( self, repo_name, filesystem_dir, manager_type, description, distro_map ):
     logging.debug( 'libRepo: _setupRepo "%s" "%s" "%s"' % ( repo_name, manager_type, description ) )
-    self.repos[ repo_name ] = FileSystemRepo( manager_type, os.path.join( self.root_dir, repo_name ), repo_name, 'main', description, self.description, distro_map, self.gpg_key )
+    self.repos[ repo_name ] = FileSystemRepo( manager_type, os.path.join( self.root_dir, filesystem_dir ), repo_name, 'main', description, self.description, distro_map, self.gpg_key )
 
     cur = self.conn.cursor()
     cur.execute( 'SELECT "file_type", "filename", "distro", "distro_version", "arch" FROM "files" WHERE "repo"=?;', ( repo_name, ) )
@@ -251,7 +256,7 @@ class FileSystemMirror( object ):
     repo_list = self.packrat.getRepos( mirror[ 'repo_list' ] )
     repo_map = {}
     for repo_name in repo_list:
-      repo_map[ repo_list[ repo_name ][ 'name' ] ] = { 'uri': repo_name, 'manager': repo_list[ repo_name ][ 'manager_type' ], 'description': repo_list[ repo_name ][ 'description' ], 'distroversion_list': repo_list[ repo_name ][ 'distroversion_list' ] }
+      repo_map[ repo_list[ repo_name ][ 'name' ] ] = { 'uri': repo_name, 'filesystem_dir': repo_list[ repo_name ][ 'filesystem_dir' ], 'manager': repo_list[ repo_name ][ 'manager_type' ], 'description': repo_list[ repo_name ][ 'description' ], 'distroversion_list': repo_list[ repo_name ][ 'distroversion_list' ] }
 
     cur_names = []
     cur = self.conn.cursor()
@@ -277,8 +282,8 @@ class FileSystemMirror( object ):
         except KeyError:
           distro_map[ self.distroversion_map[ distroversion ][ 'distro' ] ] = [ self.distroversion_map[ distroversion ][ 'version' ] ]
 
-      self._setupRepo( repo_name, repo_map[ repo_name ][ 'manager' ], repo_map[ repo_name ][ 'description' ], distro_map )
-      self.conn.execute( 'INSERT INTO "repos" ( "name", "uri", "manager", "description", "distro_map" ) VALUES ( ?, ?, ?, ? , ? );', ( repo_name, repo_map[ repo_name ][ 'uri' ], repo_map[ repo_name ][ 'manager' ], repo_map[ repo_name ][ 'description' ], json.dumps( distro_map ) ) )
+      self._setupRepo( repo_name, repo_map[ repo_name ][ 'filesystem_dir' ], repo_map[ repo_name ][ 'manager' ], repo_map[ repo_name ][ 'description' ], distro_map )
+      self.conn.execute( 'INSERT INTO "repos" ( "name", "uri", "manager", "filesystem_dir", "description", "distro_map" ) VALUES ( ?, ?, ?, ?, ?, ? );', ( repo_name, repo_map[ repo_name ][ 'uri' ], repo_map[ repo_name ][ 'manager' ], repo_map[ repo_name ][ 'filesystem_dir' ], repo_map[ repo_name ][ 'description' ], json.dumps( distro_map ) ) )
 
     for repo_name in new_names & cur_names: # TODO: raise an error if manager or uri changes, URI changes may be allowed?, also need to update distro_map, and tell the Manager about the changes
       self.conn.execute( 'UPDATE "repos" SET "description"=? WHERE "name"=?;', ( repo_map[ repo_name ][ 'description' ], repo_name ) )
@@ -328,7 +333,7 @@ class FileSystemMirror( object ):
 
       for packagefile_uri in master_packagefiles - local_packagfiles:
         logging.debug( 'libRepo: Adding packagefile "%s" to repo "%s"' % ( packagefile_uri, repo_name ) )
-        self.conn.execute( 'INSERT INTO "files" ( "repo", "uri", "file_url", "file_type", "filename", "distro", "distro_version", "arch", "sha256", "repo_data") VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, \'{}\' );', ( repo_name, packagefile_uri ) + master_packagefile_map[ packagefile_uri ] )
+        self.conn.execute( 'INSERT INTO "files" ( "repo", "uri", "file_url", "file_type", "filename", "distro", "distro_version", "arch", "sha256", "repo_data" ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, \'{}\' );', ( repo_name, packagefile_uri ) + master_packagefile_map[ packagefile_uri ] )
 
       for packagefile_uri in master_packagefiles & local_packagfiles:
         if local_packagefile_hashes[ packagefile_uri ] != master_packagefile_hashes[ packagefile_uri ]:
@@ -341,7 +346,7 @@ class FileSystemMirror( object ):
     logging.debug( 'libRepo: _pruneBadFiles' )
     for repo_name in self.repos:
       cur = self.conn.cursor()
-      cur.execute( 'SELECT "filename", "distro", "distro_version", "arch", "sha256" FROM "files" WHERE "repo"=?;', ( repo_name, ) )
+      cur.execute( 'SELECT "filename", "distro", "distro_version", "arch", "sha256", "signed256" FROM "files" WHERE "repo"=?;', ( repo_name, ) )
       self.repos[ repo_name ].checkFiles( cur.fetchall() ) # will cleanup bad sha and missing files from repo, and remove extra files
       cur.close()
 
@@ -349,20 +354,25 @@ class FileSystemMirror( object ):
     logging.debug( 'libRepo: _retreiveMissingFiles' )
     for repo_name in self.repos:
       cur = self.conn.cursor()
-      cur.execute( 'SELECT "file_type", "filename", "distro", "distro_version", "arch", "file_url" FROM "files" WHERE "repo"=?;', ( repo_name, ) )
-      for ( file_type, filename, distro, distro_version, arch, file_url ) in cur.fetchall():
+      cur.execute( 'SELECT "file_type", "filename", "distro", "distro_version", "arch", "file_url", "uri" FROM "files" WHERE "repo"=?;', ( repo_name, ) )
+      for ( file_type, filename, distro, distro_version, arch, file_url, uri ) in cur.fetchall():
         file_path = self.repos[ repo_name ].manager.filePath( filename, distro, distro_version, arch )
         if not os.path.exists( file_path ):
           logging.debug( 'Retrieving "%s"...' % filename )
           wrk_file_path = self.packrat.getFile( file_url )
-          self.repos[ repo_name ].addFile( wrk_file_path, file_type, filename, distro, distro_version, arch )
+          sha256 = self.repos[ repo_name ].addFile( wrk_file_path, file_type, filename, distro, distro_version, arch )
+          if sha256 is not None:
+            self.conn.execute( 'UPDATE "files" SET "signed256"=? WHERE "repo"=? AND "uri"=?', ( sha256, repo_name, uri ) )
+            self.conn.commit()
+
+      cur.close()
 
   def _updateMetaData( self ):
     logging.debug( 'libRepo: _updateMetaData' )
     for repo_name in self.repos:
       self.repos[ repo_name ].updateMetaData()
 
-  def _updatePackage( self, repo_uri, repo_name, package_list ): # for now, skipping the db, the full sync will take care of it, hopfully nothing prunes files looking at the db before the db is updated
+  def _updatePackage( self, repo_uri, repo_name, package_list ): # for now, skipping the db, the full sync will take care of it, hopfully nothing prunes files looking at the db before the db is updated, locally signed packages will probably get re-downloaded, anoying, yes, have to re-think the source of trust's hashing and signing.
     logging.debug( 'libRepo: _updatePackage "%s" "%s" "%s"' % ( repo_uri, repo_name, package_list ) )
     packagefile_map = self.packrat.getPackageFiles( repo_uri, package_list )
     for packagefile_uri in packagefile_map:
@@ -398,6 +408,7 @@ class FileSystemMirror( object ):
     "name" char(50) PRIMARY KEY,
     "uri" char(100) NOT NULL UNIQUE,
     "manager" char(10) NOT NULL,
+    "filesystem_dir" char(50) NOT NULL,
     "description" char(200) NOT NULL,
     "distro_map" char(400) NOT NULL,
     "created" datetime DEFAULT CURRENT_TIMESTAMP,
@@ -416,6 +427,7 @@ class FileSystemMirror( object ):
     "distro_version" char(20) NOT NULL,
     "arch" char(6) NOT NULL,
     "sha256" char(64) NOT NULL,
+    "signed256" char(64) NULL,
     "repo_data" text NOT NULL,
     "created" datetime DEFAULT CURRENT_TIMESTAMP,
     "modified" datetime DEFAULT CURRENT_TIMESTAMP,

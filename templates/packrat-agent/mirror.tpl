@@ -14,4 +14,5 @@ root_dir: /var/www/repo
 gpg_sign_key:
 state_db: /var/lib/packratAgent/state.db
 full_sync_interval: 900
+keep_file: /var/www/repo/repo-key
 {% endtarget %}
