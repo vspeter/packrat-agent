@@ -3,7 +3,7 @@ all:
 install:
 	mkdir -p $(DESTDIR)usr/sbin
 	mkdir -p $(DESTDIR)etc/packrat
-	install -m 755 sbin/repoSync $(DESTDIR)usr/sbin
+	install -m 755 sbin/packrat-agent $(DESTDIR)usr/sbin
 
 clean:
 	$(RM) -fr build
