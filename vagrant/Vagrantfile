@@ -36,7 +36,7 @@ PLATO_CONFIG
   # "install" packrat
   config.vm.synced_folder "../packratAgent", "/usr/lib/python2.7/dist-packages/packratAgent", create: true, :mount_options => ["ro"]
   config.vm.synced_folder "../sbin", "/tmp/sbin", create: true, :mount_options => ["ro"]
-  config.vm.provision "file", source: "../sbin/repoSync", destination: "/tmp/repoSync"
+  config.vm.provision "file", source: "../sbin/packrat-agent", destination: "/tmp/packrat-agent"
   config.vm.provision "file", source: "../templates/packrat-agent/mirror.tpl", destination: "/tmp/mirror.tpl"
 
   config.vm.provision "shell", inline: <<-PACKRAT_AGENT_CONFIG
@@ -47,7 +47,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get install -y python-simplejson python-cinp python-arpy python-gpgme python-rpm yum python-pysqlite2 libsqlite3-0
 
 # "install" the package
-ln -s /tmp/sbin/repoSync /usr/sbin/repoSync
+ln -s /tmp/sbin/packrat-agent /usr/sbin/
 
 mkdir -p /var/lib/packratAgent
 

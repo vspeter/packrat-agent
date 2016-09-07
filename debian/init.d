@@ -1,20 +1,20 @@
 #!/bin/sh
 ### BEGIN INIT INFO
-# Provides:          repoSync
+# Provides:          packrat-agent
 # Required-Start:    $network $named $time $local_fs $syslog
 # Required-Stop:
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Packrat repoSync
-# Description:       Packrat repoSync
+# Short-Description: Packrat Agent
+# Description:       Packrat Agent
 ### END INIT INFO
 
 # Author: Peter Howe
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC="Packrat Repo Sync"             # Introduce a short description here
-NAME=repoSync             # Introduce the short server's name here
-DAEMON=/usr/sbin/repoSync      # Introduce the server's location here
+DESC="Packrat Agent"             # Introduce a short description here
+NAME=packrat-agent             # Introduce the short server's name here
+DAEMON=/usr/sbin/packrat-agent      # Introduce the server's location here
 DAEMON_ARGS= # Arguments to run the daemon with
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
