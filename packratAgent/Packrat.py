@@ -14,7 +14,7 @@ class PackratConnectionException( Exception ):
 class PackratException( Exception ):
   pass
 
-PACKRAT_API_VERSION = 'v1.1'
+PACKRAT_API_VERSION = '1.5'
 
 """
 class KeepAlive( Thread ):
@@ -26,24 +26,26 @@ class KeepAlive( Thread ):
   def run( self ):
     while self.cinp:
       rc = self.cinp.call( '/api/v1/Auth(keepalive)' ) # detect if the keepalive failes, if it does... re-auth
-      print "Keep alive saies '%s'" % rc
+      print( "Keep alive saies '{0}'".format( rc ) )
       time.sleep( 60 )
 """
 
-class Packrat( object ):
-  def __init__( self, host, proxy, name, psk ):
-    self.cinp = client.CInP( host, '/api/v1', proxy )
+
+class Packrat():
+  def __init__( self, host, proxy, port, name, psk ):
+    super().__init__()
+    self.cinp = client.CInP( host, '/api/v1/', port, proxy )
     #self.token = self.cinp.call( '/api/v1/Auth(login)', { 'username': name, 'password': psk } )[ 'value' ]
     #self.cinp.setAuth( name, self.token )
     #self.keepalive = KeepAlive( self.cinp )
     #self.keepalive.start()
     self.name = name
-    root = self.cinp.describe( '/api/v1/Repos' )[0]
+    root = self.cinp.describe( '/api/v1/Repo' )
     if root[ 'api-version' ] != PACKRAT_API_VERSION:
-      raise PackratException( 'Expected API version "%s" found "%s"' % ( PACKRAT_API_VERSION, root[ 'api-version' ] ) )
+      raise PackratException( 'Expected API version "{0}" found "{1}"'.format( PACKRAT_API_VERSION, root[ 'api-version' ] ) )
 
   def getFile( self, url, timeout=30 ):
-    logging.debug( 'Packrat: File URL: "%s"' % url )
+    logging.debug( 'Packrat: File URL: "%s"', url )
 
     ( fd, file_path ) = tempfile.mkstemp( prefix='packrat-' )
     os.fchmod( fd, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH )
@@ -54,19 +56,23 @@ class Packrat( object ):
     return file_path
 
   def getMirror( self ):
-    return self.cinp.get( '/api/v1/Repos/Mirror:%s:' % self.name )
+    return self.cinp.get( '/api/v1/Repo/Mirror:{0}:'.format( self.name ) )
 
   def heartbeat( self ):
-    self.cinp.call( '/api/v1/Repos/Mirror:%s:(heartbeat)' % self.name )
+    self.cinp.call( '/api/v1/Repo/Mirror:{0}:(heartbeat)'.format( self.name ) )
 
-  def getRepos( self, repo_uri_list ): #TODO: make sure it is a repo URI
-    return self.cinp.getObjects( repo_uri_list )
+  def getRepos( self, repo_uri_list ):  # TODO: make sure it is a repo URI
+    return self.cinp.getMulti( repo_uri_list )
 
   def poll( self, repo_uri, timeout=30 ):
-    return self.cinp.call( '%s(poll)' % repo_uri, { 'timeout': timeout }, timeout=( timeout + 30 ) )
+    return self.cinp.call( '{0}(poll)'.format( repo_uri ), { 'timeout': timeout }, timeout=( timeout + 30 ) )
 
   def getPackageFiles( self, repo_uri, package_list=None ):
-    return self.cinp.getObjects( list_args={ 'uri': '/api/v1/Repos/PackageFile', 'filter': 'repo', 'values': { 'repo': repo_uri, 'package_list': package_list } } )
+    return self.cinp.getFilteredObjects( '/api/v1/Repo/PackageFile', 'repo', { 'repo': repo_uri, 'package_list': package_list } )
 
   def getDistroVersions( self ):
-    return self.cinp.getObjects( list_args={ 'uri': '/api/v1/Repos/DistroVersion' } )
+    result = {}
+    for key, value in self.cinp.getFilteredObjects( '/api/v1/Repo/DistroVersion' ):
+      result[ key ] = value
+
+    return result

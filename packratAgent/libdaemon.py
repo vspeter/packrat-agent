@@ -4,11 +4,10 @@ import logging
 import signal
 from logging.handlers import SysLogHandler, WatchedFileHandler
 
-#NOTE: this is not compatible with python < 2.6
 
-class Daemon( object ):
+class Daemon():
   def __init__( self, proc_name, pidfile, interactive=False, error_log=None ):
-    super( Daemon, self ).__init__()
+    super().__init__()
     self.proc_name = proc_name
     self.interactive = interactive
     self.error_log = error_log
@@ -22,7 +21,7 @@ class Daemon( object ):
     signal.signal( signal.SIGUSR1, self._sigHandler )
     signal.signal( signal.SIGUSR2, self._sigHandler )
 
-  ## implemet these in subclass, return True if all is good, other wise return False, except for do_stop
+  # implemet these in subclass, return True if all is good, other wise return False, except for do_stop
   def main( self ):
     return True
 
@@ -37,7 +36,7 @@ class Daemon( object ):
 
   def do_extra_2( self ):
     return True
-  ## end
+  # end
 
   def _initLogging( self ):
     logging.basicConfig()
@@ -46,7 +45,7 @@ class Daemon( object ):
     if self.interactive:
       logger.setLevel( logging.DEBUG )
     else:
-      logger.removeHandler( logger.handlers[0] ) # get rid of the default one
+      logger.removeHandler( logger.handlers[0] )  # get rid of the default one
       if self.error_log:
         handler = WatchedFileHandler( filename=self.error_log )  # something that can handle logrotate
         handler.setFormatter( logging.Formatter( fmt='\n\n%(asctime)s   pid:%(process)d   thread:   %(thread)d\n%(module)s - %(lineno)d\n%(message)s' ) )
@@ -62,14 +61,14 @@ class Daemon( object ):
 
   def _daemonize( self ):
     logging.debug( 'libdaemon: Damonizing...' )
-    #http://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/
+    # http://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/
     logging.debug( 'libdaemon: First Fork...' )
     try:
       pid = os.fork()
       if pid > 0:
-        sys.exit( 0 ) # another parent dies for the sake of the child
+        sys.exit( 0 )  # another parent dies for the sake of the child
     except OSError as e:
-      logging.exception( 'libdaemon: Exception on first fork, errno: %s' % e.errno )
+      logging.exception( 'libdaemon: Exception on first fork, errno: %s', e.errno )
       raise e
 
     logging.debug( 'libdaemon: Unataching process...' )
@@ -81,33 +80,33 @@ class Daemon( object ):
     try:
       pid = os.fork()
       if pid > 0:
-        sys.exit( 0 ) # yet another parent dies for the sake of the child
+        sys.exit( 0 )  # yet another parent dies for the sake of the child
     except OSError as e:
-      logging.exception( 'libdaemon: Exception on second fork, errno: %s' % e.errno )
+      logging.exception( 'libdaemon: Exception on second fork, errno: %s', e.errno )
       raise e
 
     logging.debug( 'libdaemon: Detaching stdout/err/in...' )
     # we are the child now, go go go
     sys.stdout.flush()
     sys.stderr.flush()
-    tmp = file( '/dev/null', 'r' )
+    tmp = open( '/dev/null', 'r' )
     os.dup2( tmp.fileno(), sys.stdin.fileno() )
-    tmp = file( '/dev/null', 'a+' )
+    tmp = open( '/dev/null', 'a+' )
     os.dup2( tmp.fileno(), sys.stdout.fileno() )
-    tmp = file( '/dev/null', 'a+', 0 )
+    tmp = open( '/dev/null', 'a+', 0 )
     os.dup2( tmp.fileno(), sys.stderr.fileno() )
 
   def _writepid( self ):
     logging.debug( 'libdaemon: Writing PID to "%s"...', self.pidfile )
-    tmp = file( self.pidfile, 'w' )
-    tmp.write( '%s\n' % os.getpid() )
+    tmp = open( self.pidfile, 'w' )
+    tmp.write( '{0}\n'.format( os.getpid() ) )
     tmp.close()
 
-  def _readpid( self ): # can't log in _readpid, called from non-logging inited state
+  def _readpid( self ):  # can't log in _readpid, called from non-logging inited state
     if not os.path.exists( self.pidfile ):
       return None
 
-    tmp = file( self.pidfile, 'r' )
+    tmp = open( self.pidfile, 'r' )
     pid = int( tmp.read().strip() )
     tmp.close()
 
@@ -121,7 +120,7 @@ class Daemon( object ):
       pass
 
   def _sigHandler( self, sig, frame ):
-    logging.debug( 'libdaemon: Got Signal %d' % sig )
+    logging.debug( 'libdaemon: Got Signal %d', sig )
     if sig in ( signal.SIGINT, signal.SIGQUIT, signal.SIGTERM ):
       logging.info( 'libdaemon: Got Stop Signal' )
       self.need_restart = False
@@ -153,7 +152,7 @@ class Daemon( object ):
     else:
       logging.debug( 'libdaemon: Unknown Signal' )
 
-    logging.debug( 'libdaemon: Done with Signal %d' % sig )
+    logging.debug( 'libdaemon: Done with Signal %s', sig )
 
   def start( self ):
     logging.debug( 'libdaemon: Starting...' )
@@ -161,7 +160,7 @@ class Daemon( object ):
 
     pid = self._readpid()
     if pid:
-      logging.error( 'libdaemon: pidfile %s found, allready running?' % self.pidfile )
+      logging.error( 'libdaemon: pidfile %s found, allready running?', self.pidfile )
       return False
 
     if not self.do_loadconfig():
@@ -197,18 +196,18 @@ class Daemon( object ):
     logging.debug( 'libdaemon: All Done.' )
     return rc
 
-  #NOTE: these don't get called inside the running Process, they are signialling to the Process, only the signal goes through to _sigHandler
+  # NOTE: these don't get called inside the running Process, they are signialling to the Process, only the signal goes through to _sigHandler
   def stop( self ):
     pid = self._readpid()
     if not pid:
-      print 'pidfile not %s found.' % self.pidfile
+      print( 'pidfile not {0} found.'.format( self.pidfile ) )
       return False
 
     try:
       os.kill( pid, signal.SIGTERM )
     except OSError as e:
       if str( e ).find( 'No such process' ) > 0:
-        print 'Process from pid file is dead, cleanning up pid file.'
+        print( 'Process from pid file is dead, cleanning up pid file.' )
         self._delpid()
       else:
         raise e
@@ -218,14 +217,14 @@ class Daemon( object ):
   def kill( self ):
     pid = self._readpid()
     if not pid:
-      print 'pidfile not %s found.' % self.pidfile
+      print( 'pidfile not {0} found.'.format( self.pidfile ) )
       return False
 
     try:
       os.kill( pid, signal.SIGKILL )
     except OSError as e:
       if str( e ).find( 'No such process' ) > 0:
-        print 'Process from pid file is dead, cleanning up pid file.'
+        print( 'Process from pid file is dead, cleanning up pid file.' )
         self._delpid()
       else:
         raise e
@@ -235,14 +234,14 @@ class Daemon( object ):
   def restart( self ):
     pid = self._readpid()
     if not pid:
-      print 'pidfile not %s found.' % self.pidfile
+      print( 'pidfile not {0} found.'.format( self.pidfile ) )
       return False
 
     try:
       os.kill( pid, signal.SIGHUP )
     except OSError as e:
       if str( e ).find( 'No such process' ) > 0:
-        print 'Process %s is not running' % pid
+        print( 'Process {0} is not running'.format( pid ) )
         return False
       else:
         raise e
@@ -252,14 +251,14 @@ class Daemon( object ):
   def reload_config( self ):
     pid = self._readpid()
     if not pid:
-      print 'pidfile not %s found.' % self.pidfile
+      print( 'pidfile not {0} found.'.format( self.pidfile ) )
       return False
 
     try:
       os.kill( pid, signal.SIGSYS )
     except OSError as e:
       if str( e ).find( 'No such process' ) > 0:
-        print 'Process %s is not running' % pid
+        print( 'Process {0} is not running'.format( pid ) )
         return False
       else:
         raise e
@@ -269,14 +268,14 @@ class Daemon( object ):
   def extra_1( self ):
     pid = self._readpid()
     if not pid:
-      print 'pidfile not %s found.' % self.pidfile
+      print( 'pidfile not {0} found.'.format( self.pidfile ) )
       return False
 
     try:
       os.kill( pid, signal.SIGUSR1 )
     except OSError as e:
       if str( e ).find( 'No such process' ) > 0:
-        print 'Process %s is not running' % pid
+        print( 'Process {0} is not running'.format( pid ) )
         return False
       else:
         raise e
@@ -286,14 +285,14 @@ class Daemon( object ):
   def extra_2( self ):
     pid = self._readpid()
     if not pid:
-      print 'pidfile not %s found.' % self.pidfile
+      print( 'pidfile not {0} found.'.format( self.pidfile ) )
       return False
 
     try:
       os.kill( pid, signal.SIGUSR2 )
     except OSError as e:
       if str( e ).find( 'No such process' ) > 0:
-        print 'Process %s is not running' % pid
+        print( 'Process {0} is not running'.format( pid ) )
         return False
       else:
         raise e
@@ -310,8 +309,8 @@ class Daemon( object ):
         os.kill( pid, 0 )
       except OSError as e:
         if str( e ).find( 'No such process' ) > 0:
-          return 'Process Missing PID:%s' % pid
+          return( 'Process Missing PID:{0}'.format( pid ) )
         else:
           raise e
 
-      return 'Running PID:%s' % pid
+      return 'Running PID:{0}'.format( pid )

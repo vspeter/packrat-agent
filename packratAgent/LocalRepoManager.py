@@ -1,5 +1,6 @@
 import hashlib
 
+
 def hashFile( file_path ):
   md5 = hashlib.md5()
   sha1 = hashlib.sha1()
@@ -10,7 +11,7 @@ def hashFile( file_path ):
     if e.errno == 2:  # file not found
       return ( None, None, None )
     else:
-      raise Exception( 'Unknown IOError "%s" getting hash of file "%s"' % ( e, file_path ) )
+      raise Exception( 'Unknown IOError "{0}" getting hash of file "{1}"'.format( e, file_path ) )
 
   buff = wrk.read( 4096 )
   while buff:
@@ -21,8 +22,9 @@ def hashFile( file_path ):
   return ( sha1.hexdigest(), sha256.hexdigest(), md5.hexdigest() )
 
 
-class LocalRepoManager( object ):
+class LocalRepoManager():
   def __init__( self, root_dir, component, repo_description, mirror_description, distro_map, gpg_key=None ):
+    super().__init__()
     self.root_dir = root_dir
     self.component = component
     self.repo_description = repo_description
