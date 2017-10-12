@@ -37,10 +37,13 @@ class PackratAgent( Daemon ):
         logging.error( 'Poller(s) died, bailing...' )
         self.do_stop()
 
-      if not self.cont:  # sometimes fullSync can take a while
-        break
+      delay = self.full_sync_interval
+      while delay and self.cont:
+        time.sleep( 1 )
+        delay -= 1
 
-      time.sleep( self.full_sync_interval )
+      if not self.cont:
+        break
 
     logging.info( 'Waiting for Pollers...' )
     self.mirror.waitForPollers()

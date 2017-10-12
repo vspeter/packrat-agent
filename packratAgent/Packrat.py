@@ -1,8 +1,7 @@
 import logging
 import os
-import stat
+import errno
 #import time
-import tempfile
 #from threading import Thread
 
 from cinp import client
@@ -15,6 +14,7 @@ class PackratException( Exception ):
   pass
 
 PACKRAT_API_VERSION = '1.5'
+DOWNLOAD_TMP_DIR = '/tmp/packratAgent'
 
 """
 class KeepAlive( Thread ):
@@ -34,6 +34,15 @@ class KeepAlive( Thread ):
 class Packrat():
   def __init__( self, host, proxy, port, name, psk ):
     super().__init__()
+
+    try:
+      os.makedirs( DOWNLOAD_TMP_DIR )
+    except OSError as e:
+      if e.errno == errno.EEXIST and os.path.isdir( DOWNLOAD_TMP_DIR ):
+        pass
+      else:
+        raise e
+
     self.cinp = client.CInP( host, '/api/v1/', port, proxy )
     #self.token = self.cinp.call( '/api/v1/Auth(login)', { 'username': name, 'password': psk } )[ 'value' ]
     #self.cinp.setAuth( name, self.token )
@@ -47,19 +56,13 @@ class Packrat():
   def getFile( self, url, timeout=30 ):
     logging.debug( 'Packrat: File URL: "%s"', url )
 
-    ( fd, file_path ) = tempfile.mkstemp( prefix='packrat-' )
-    os.fchmod( fd, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH )
-    tmpfile = os.fdopen( fd, 'w' )
-    self.cinp.getFile( url, tmpfile, timeout=timeout )
-    tmpfile.close()
-
-    return file_path
+    return self.cinp.getFile( url, target_dir=DOWNLOAD_TMP_DIR, timeout=timeout )
 
   def getMirror( self ):
     return self.cinp.get( '/api/v1/Repo/Mirror:{0}:'.format( self.name ) )
 
   def heartbeat( self ):
-    self.cinp.call( '/api/v1/Repo/Mirror:{0}:(heartbeat)'.format( self.name ) )
+    self.cinp.call( '/api/v1/Repo/Mirror:{0}:(heartbeat)'.format( self.name ), {} )
 
   def getRepos( self, repo_uri_list ):  # TODO: make sure it is a repo URI
     return self.cinp.getMulti( repo_uri_list )
@@ -68,7 +71,11 @@ class Packrat():
     return self.cinp.call( '{0}(poll)'.format( repo_uri ), { 'timeout': timeout }, timeout=( timeout + 30 ) )
 
   def getPackageFiles( self, repo_uri, package_list=None ):
-    return self.cinp.getFilteredObjects( '/api/v1/Repo/PackageFile', 'repo', { 'repo': repo_uri, 'package_list': package_list } )
+    result = {}
+    for key, value in self.cinp.getFilteredObjects( '/api/v1/Repo/PackageFile', 'repo', { 'repo': repo_uri, 'package_list': package_list } ):
+      result[ key ] = value
+
+    return result
 
   def getDistroVersions( self ):
     result = {}

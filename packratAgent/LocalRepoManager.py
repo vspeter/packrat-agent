@@ -6,7 +6,7 @@ def hashFile( file_path ):
   sha1 = hashlib.sha1()
   sha256 = hashlib.sha256()
   try:
-    wrk = open( file_path, 'r' )
+    wrk = open( file_path, 'rb' )
   except IOError as e:
     if e.errno == 2:  # file not found
       return ( None, None, None )
@@ -19,6 +19,7 @@ def hashFile( file_path ):
     sha1.update( buff )
     sha256.update( buff )
     buff = wrk.read( 4096 )
+
   return ( sha1.hexdigest(), sha256.hexdigest(), md5.hexdigest() )
 
 

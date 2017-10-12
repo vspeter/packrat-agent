@@ -49,7 +49,7 @@ class PackratPoller( Thread ):
   def run( self ):
     while self.cont:
       try:
-        packages = self.packrat.poll( self.repo_uri )[ 'value' ]
+        packages = self.packrat.poll( self.repo_uri )
       except Exception as e:
         logging.warning( 'libRepo: Exception while polling, "%s"', e )
         if not self.cont:
@@ -289,7 +289,6 @@ class FileSystemMirror():
       logging.debug( 'libRepo: Adding repo "%s"', repo_name )
       distro_map = {}
       for distroversion in repo_map[ repo_name ][ 'distroversion_list' ]:
-        print( self.distroversion_map )
         try:
           distro_map[ self.distroversion_map[ distroversion ][ 'distro' ] ].append( self.distroversion_map[ distroversion ][ 'version' ] )
         except KeyError:
@@ -316,9 +315,9 @@ class FileSystemMirror():
       for packagefile_uri in master_packagefile_map:
         packagefile = master_packagefile_map[ packagefile_uri ]
         distroversion = self.distroversion_map[ packagefile[ 'distroversion' ] ]
-        master_packagefile_map[ packagefile_uri ] = ( packagefile[ 'file' ], packagefile[ 'type' ], os.path.basename( packagefile[ 'file' ] ), distroversion[ 'distro' ], distroversion[ 'version' ], packagefile[ 'arch' ], packagefile[ 'sha256' ] )
+        master_packagefile_map[ packagefile_uri ] = ( packagefile[ 'file' ], packagefile[ 'type' ], os.path.basename( packagefile[ 'file' ] ), distroversion[ 'distro' ], '' if distroversion[ 'version' ] is None else distroversion[ 'version' ], packagefile[ 'arch' ], packagefile[ 'sha256' ] )
         md5 = hashlib.md5()
-        md5.update( ' '.join( master_packagefile_map[ packagefile_uri ] ) )
+        md5.update( b' '.join( [ i.encode() for i in master_packagefile_map[ packagefile_uri ] ] ) )
         master_packagefile_hashes[ packagefile_uri ] = md5.digest()
 
       local_packagefile_hashes = {}
@@ -327,7 +326,7 @@ class FileSystemMirror():
       for fields in cur.fetchall():
         packagefile_uri = fields[0]
         md5 = hashlib.md5()
-        md5.update( ' '.join( fields[ 1: ] ) )
+        md5.update( b' '.join( [ i.encode() for i in fields[ 1: ] ] ) )
         local_packagefile_hashes[ packagefile_uri ] = md5.digest()
 
       cur.close()
