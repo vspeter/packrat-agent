@@ -10,11 +10,11 @@ class PyPiManager( LocalRepoManager ):
     super().__init__( *args, **kargs )
     self.entry_list = {}
 
-  def filePath( self, filename, distro, distro_version, arch ):
+  def filePaths( self, filename, distro, distro_version, arch ):
     ( simple_dir, _ ) = filename.split( '-', 1 )
     package_dir = simple_dir[ 0:6 ]
 
-    return '{0}/packages/{1}/{2}'.format( self.root_dir, package_dir, filename )
+    return [ '{0}/packages/{1}/{2}'.format( self.root_dir, package_dir, filename ) ]
 
   def metadataFiles( self ):
     results = []

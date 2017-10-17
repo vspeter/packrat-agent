@@ -102,7 +102,12 @@ class FileSystemRepo():
 
   def checkFiles( self, file_list ):  # checks sha256 and file existance, removes file and entry upon problem
     for ( filename, distro, distro_version, arch, sha256, signed256 ) in file_list:
-      file_path = self.manager.filePath( filename, distro, distro_version, arch )
+      file_path_list = self.manager.filePaths( filename, distro, distro_version, arch )
+
+      if len( file_path_list ) > 1:
+        return  # don't have support for checking sha256 of origional file  if that file  has been split up yet
+
+      file_path = file_path_list[0]
       ( _, file_sha256, _ ) = hashFile( file_path )
       if file_sha256 is None:  # file dosen't exist, no point trying to delete it
         continue
@@ -125,9 +130,14 @@ class FileSystemRepo():
     logging.debug( 'libRepo: Acquiring update lock for repo during addEntries "%s"', self.name )
     self.update_lock.acquire()
     for ( file_type, filename, distro, distro_version, arch ) in file_list:
-      file_path = self.manager.filePath( filename, distro, distro_version, arch )
-      if os.path.exists( file_path ):
+      file_path_list = self.manager.filePaths( filename, distro, distro_version, arch )
+      exists = True
+      for file_path in file_path_list:
+        exists &= os.path.exists( file_path )
+
+      if exists:
         self.manager.addEntry( file_type, filename, distro, distro_version, arch )
+
     self.update_lock.release()
     logging.debug( 'libRepo: Released update lock for repo during addEntries "%s"', self.name )
 
@@ -205,7 +215,7 @@ class FileSystemMirror():
       cur = self.conn.cursor()
       cur.execute( 'SELECT "repo", "filename", "distro", "distro_version", "arch" FROM "files"' )
       for ( repo_name, filename, distro, distro_version, arch ) in cur.fetchall():
-        expected_file_list.append( self.repos[ repo_name ].manager.filePath( filename, distro, distro_version, arch ) )
+        expected_file_list += self.repos[ repo_name ].manager.filePaths( filename, distro, distro_version, arch )
       cur.close()
 
       for repo_name in self.repos:
@@ -368,8 +378,12 @@ class FileSystemMirror():
       cur = self.conn.cursor()
       cur.execute( 'SELECT "file_type", "filename", "distro", "distro_version", "arch", "file_url", "uri" FROM "files" WHERE "repo"=?;', ( repo_name, ) )
       for ( file_type, filename, distro, distro_version, arch, file_url, uri ) in cur.fetchall():
-        file_path = self.repos[ repo_name ].manager.filePath( filename, distro, distro_version, arch )
-        if not os.path.exists( file_path ):
+        file_path_list = self.repos[ repo_name ].manager.filePaths( filename, distro, distro_version, arch )
+        exists = True
+        for file_path in file_path_list:
+          exists &= os.path.exists( file_path )
+
+        if not exists:
           logging.debug( 'Retrieving "%s"...', filename )
           wrk_file_path = self.packrat.getFile( file_url )
           sha256 = self.repos[ repo_name ].addFile( wrk_file_path, file_type, filename, distro, distro_version, arch )
@@ -391,8 +405,12 @@ class FileSystemMirror():
       packagefile = packagefile_map[ packagefile_uri ]
       distroversion = self.distroversion_map[ packagefile[ 'distroversion' ] ]
       filename = os.path.basename( packagefile[ 'file' ] )
-      file_path = self.repos[ repo_name ].manager.filePath( filename, distroversion[ 'distro' ], distroversion[ 'version' ], packagefile[ 'arch' ] )
-      if not os.path.exists( file_path ):
+      file_path_list = self.repos[ repo_name ].manager.filePaths( filename, distroversion[ 'distro' ], distroversion[ 'version' ], packagefile[ 'arch' ] )
+      exists = True
+      for file_path in file_path_list:
+        exists &= os.path.exists( file_path )
+
+      if not exists:
         logging.debug( 'Retrieving "%s"...', filename )
         wrk_file_path = self.packrat.getFile( packagefile[ 'file' ] )
         self.repos[ repo_name ].addFile( wrk_file_path, packagefile[ 'type' ], filename, distroversion[ 'distro' ], distroversion[ 'version' ], packagefile[ 'arch' ] )

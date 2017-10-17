@@ -52,9 +52,9 @@ class JSONManager( LocalRepoManager ):
     self.arch_list = ( 'all', )
     self.entry_list = {}
 
-  def filePath( self, filename, distro, distro_version, arch ):
+  def filePaths( self, filename, distro, distro_version, arch ):
     ( package, version, _ ) = _splitFileName( filename )
-    return os.path.join( self.root_dir, package, filename )
+    return [ os.path.join( self.root_dir, package, filename ) ]
 
   def metadataFiles( self ):
     result = []

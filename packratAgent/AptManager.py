@@ -20,11 +20,11 @@ class AptManager( LocalRepoManager ):
     self.arch_list = ( 'i386', 'amd64' )
     self.entry_list = {}
 
-  def filePath( self, filename, distro, distro_version, arch ):
+  def filePaths( self, filename, distro, distro_version, arch ):
     ( pool_dir, _ ) = filename.split( '_', 1 )
     pool_dir = pool_dir[ 0:6 ]
 
-    return '{0}/pool/{1}/{2}'.format( self.root_dir, pool_dir, filename )
+    return [ '{0}/pool/{1}/{2}'.format( self.root_dir, pool_dir, filename ) ]
 
   def metadataFiles( self ):
     result = []

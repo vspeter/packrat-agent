@@ -33,8 +33,8 @@ class LocalRepoManager():
     self.distro_map = distro_map
     self.gpg_key = gpg_key
 
-  def filePath( self, filename, distro, distro_version, arch ):
-    return None
+  def filePaths( self, filename, distro, distro_version, arch ):
+    return []
 
   def metadataFiles( self ):
     return []

@@ -20,11 +20,11 @@ class YUMManager( LocalRepoManager ):
     self.arch_list = ( 'x86_64', 'i386' )
     self.entry_list = {}
 
-  def filePath( self, filename, distro, distro_version, arch ):
+  def filePaths( self, filename, distro, distro_version, arch ):
     if arch == 'all':
       arch = 'noarch'
 
-    return '{0}/{1}/{2}/{3}/{4}/{5}'.format( self.root_dir, distro, self.component, distro_version, arch, filename )
+    return [ '{0}/{1}/{2}/{3}/{4}/{5}'.format( self.root_dir, distro, self.component, distro_version, arch, filename ) ]
 
   def metadataFiles( self ):
     result = []
