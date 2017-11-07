@@ -16,9 +16,12 @@ class Deb():
     targz = ar.archived_files[ b'control.tar.gz' ]
 
     tar = GzipFile( fileobj=targz )
+    raw = TarFile( fileobj=tar )
 
-    control = TarFile( fileobj=tar ).extractfile( './control' ).read()
+    control = raw.extractfile( './control' ).read()
+    raw.close()
     tar.close()
+    ar.close()
 
     return control
 

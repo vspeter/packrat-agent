@@ -62,6 +62,8 @@ class PackratPoller( Thread ):
         logging.info( 'libRepo: Poller for "%s" got notified for "%s"', self.repo_name, packages )
         self.cb( self.repo_uri, self.repo_name, packages )
 
+    logging.info( 'libRepo: Poller for "%s" is done.', self.repo_name )
+
   def stop( self ):
     self.cont = False
 

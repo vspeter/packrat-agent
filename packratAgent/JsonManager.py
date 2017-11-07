@@ -108,7 +108,7 @@ class JSONManager( LocalRepoManager ):
     base_path = '{0}/_repo_{1}'.format( self.root_dir, self.component )
 
     if not os.path.exists( base_path ):
-        os.makedirs( base_path )
+      os.makedirs( base_path )
 
     for distro in self.distro_map:
       for distro_version in self.distro_map[ distro ]:
