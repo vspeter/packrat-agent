@@ -1,3 +1,12 @@
+packrat-agent (0.8-1) xenial; urgency=medium
+
+  * Upgraded to python3
+  * added preliminary Docker Registry support
+  * added preliminary PyPi support
+  * temporarly disable YUM (dependant package was python2)
+
+ -- Peter <peter@xps13-01>  Wed, 08 Nov 2017 11:02:31 -0700
+
 packrat-agent (0.7-1) trusty; urgency=medium
 
   * chmod 644 new Packagefile
