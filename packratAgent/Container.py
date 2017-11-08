@@ -15,6 +15,8 @@ class Container():
     self._manifest = None
     self._config = None
     self._layerInfo = {}
+    if not os.path.isfile( filename ):
+      raise ValueError( 'file "{0}" does not exist or is not a file'.format( filename ) )
 
   def _readManifest( self ):
     raw = TarFile( self.filename )
