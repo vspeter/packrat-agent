@@ -1,9 +1,7 @@
-#!/usr/bin/python -u
+#!/usr/bin/env python3
 
 import sys
-import os
-from optparse import OptionParser
-import ConfigParser
+import configparser
 import logging
 import time
 from packratAgent.libdaemon import Daemon
@@ -13,7 +11,7 @@ from packratAgent.Packrat import Packrat
 
 class PackratAgent( Daemon ):
   def __init__( self, interactive ):
-    super( PackratAgent, self ).__init__( 'packratAgent', '/var/run/packratAgent.pid', interactive, '/var/log/packratAgent.err' )
+    super().__init__( 'packratAgent', '/tmp/packratAgent.pid', interactive, '/tmp/packratAgent.err' )
     self.mirror = None
     self.full_sync_interval = 900
     self.cont = True
@@ -38,10 +36,13 @@ class PackratAgent( Daemon ):
         logging.error( 'Poller(s) died, bailing...' )
         self.do_stop()
 
-      if not self.cont: # sometimes fullSync can take a while
-        break
+      delay = self.full_sync_interval
+      while delay and self.cont:
+        time.sleep( 1 )
+        delay -= 1
 
-      time.sleep( self.full_sync_interval )
+      if not self.cont:
+        break
 
     logging.info( 'Waiting for Pollers...' )
     self.mirror.waitForPollers()
@@ -56,7 +57,7 @@ class PackratAgent( Daemon ):
 
   def do_loadconfig( self ):
     logging.info( 'Loading Config...' )
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     try:
       if not config.read( '/etc/packrat/mirror.conf' ):
         logging.critical( 'Error opening config file' )
@@ -67,32 +68,39 @@ class PackratAgent( Daemon ):
       return False
 
     try:
-      packrat = Packrat( config.get( 'packrat', 'host' ), config.get( 'packrat', 'proxy' ), config.get( 'packrat', 'name' ), config.get( 'packrat', 'psk' ) )
-    except ConfigParser.Error as e:
+      proxy = config.get( 'packrat', 'proxy' )
+      if not proxy:
+        proxy = None
+    except configparser.Error:
+      proxy = None
+
+    try:
+      packrat = Packrat( config.get( 'packrat', 'host' ), proxy, config.get( 'packrat', 'port' ), config.get( 'packrat', 'name' ), config.get( 'packrat', 'psk' ) )
+    except configparser.Error:
       logging.exception( 'Error retreiving host, proxy, name, and/or psk from config file' )
       return False
 
     try:
       self.full_sync_interval = config.getint( 'mirror', 'full_sync_interval' )
-    except ConfigParser.Error as e:
+    except configparser.Error:
       logging.exception( 'Error retreiving full_syn_interval from config file' )
       return False
 
     try:
       description = config.get( 'mirror', 'description' )
-    except ConfigParser.Error as e:
+    except configparser.Error:
       logging.exception( 'Error retreiving description from config file' )
       return False
 
     try:
       state_db = config.get( 'mirror', 'state_db' )
-    except ConfigParser.Error as e:
+    except configparser.Error:
       logging.exception( 'Error retreiving repo_db from config file' )
       return False
 
     try:
       root_dir = config.get( 'mirror', 'root_dir' )
-    except ConfigParser.Error as e:
+    except configparser.Error:
       logging.exception( 'Error retreiving root_dir from config file' )
       return False
 
@@ -100,13 +108,13 @@ class PackratAgent( Daemon ):
       gpg_key = config.get( 'mirror', 'gpg_sign_key' )
       if not gpg_key:
         gpg_key = None
-    except ConfigParser.Error as e:
+    except configparser.Error:
       gpg_key = None
 
-    keep_file_list = []
-    for ( key, value ) in config.items( 'mirror' ):
-      if key == 'keep_file':
-        keep_file_list.append( value )
+    try:
+      keep_file_list = config.get( 'mirror', 'keep_file_list' ).split( ',' )
+    except configparser.Error:
+      keep_file_list = []
 
     self.mirror = FileSystemMirror( packrat, state_db, root_dir, gpg_key, description, keep_file_list )
 
@@ -114,7 +122,7 @@ class PackratAgent( Daemon ):
 
 
 def print_usage():
-  print 'Usage %s {interactive|start|stop|kill|restart|reload_config|status}' % sys.argv[0]
+  print( 'Usage {0} {{interactive|start|stop|kill|restart|reload_config|status}}'.format( sys.argv[0] ) )
 
 
 try:
@@ -138,7 +146,7 @@ if mode == 'kill':
   sys.exit( 0 )
 
 if mode == 'status':
-  print 'Status: %s' % daemon.status()
+  print( 'Status: {0}'.format( daemon.status() ) )
   sys.exit( 0 )
 
 if mode == 'restart':

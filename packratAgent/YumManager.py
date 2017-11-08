@@ -3,34 +3,40 @@ import time
 import logging
 import gpgme
 import shutil
-from yum.packages import YumLocalPackage
+# from packages import YumLocalPackage
 from rpm import rpm
 
-from LocalRepoManager import LocalRepoManager, hashFile
+from packratAgent.LocalRepoManager import LocalRepoManager, hashFile
+
+"""
+the  python lib to write some of the  repo files  'yum' has not been,
+and  will not (semininly) be ported to  python3, we will have to revisit later.
+"""
+
 
 class YUMManager( LocalRepoManager ):
   def __init__( self, *args, **kargs ):
-    super( YUMManager, self ).__init__( *args, **kargs )
+    super().__init__( *args, **kargs )
     self.arch_list = ( 'x86_64', 'i386' )
     self.entry_list = {}
 
-  def filePath( self, filename, distro, distro_version, arch ):
+  def filePaths( self, filename, distro, distro_version, arch ):
     if arch == 'all':
       arch = 'noarch'
 
-    return '%s/%s/%s/%s/%s/%s' % ( self.root_dir, distro, self.component, distro_version, arch, filename )
+    return [ '{0}/{1}/{2}/{3}/{4}/{5}'.format( self.root_dir, distro, self.component, distro_version, arch, filename ) ]
 
   def metadataFiles( self ):
     result = []
     for distro in self.distro_map:
       for distro_version in self.distro_map[ distro ]:
-        base_path = '%s/%s/%s/%s' % ( self.root_dir, distro, self.component, distro_version )
-        dir_path = '%s/repodata' % base_path
-        result.append( '%s/other.xml' % dir_path )
-        result.append( '%s/filelists.xml' % dir_path )
-        result.append( '%s/primary.xml' % dir_path )
-        result.append( '%s/repomd.xml' % dir_path )
-        result.append( '%s/repomd.xml.asc' % dir_path )
+        base_path = '{0}/{1}/{2}/{3}'.format( self.root_dir, distro, self.component, distro_version )
+        dir_path = '{0}/repodata'.format( base_path )
+        result.append( '{0}/other.xml'.format( dir_path ) )
+        result.append( '{0}/filelists.xml'.format( dir_path ) )
+        result.append( '{0}/primary.xml'.format( dir_path ) )
+        result.append( '{0}/repomd.xml'.format( dir_path ) )
+        result.append( '{0}/repomd.xml.asc'.format( dir_path ) )
 
     return result
 
@@ -39,7 +45,7 @@ class YUMManager( LocalRepoManager ):
       logging.warning( 'yum: New entry not a rpm, skipping...' )
       return
 
-    logging.debug( ( 'yum: Got Entry for package: %s arch: %s distro: %s distro_version: %s') % ( filename, arch, distro, distro_version ) )
+    logging.debug( 'yum: Got Entry for package: %s arch: %s distro: %s distro_version: %s', filename, arch, distro, distro_version )
 
     try:
       self.entry_list[ distro ]
@@ -52,7 +58,7 @@ class YUMManager( LocalRepoManager ):
     if arch == 'all':
       arch = 'noarch'
 
-    full_rpm_path = '%s/%s/%s/%s/%s/%s' % ( self.root_dir, distro, self.component, distro_version, arch, filename )
+    full_rpm_path = '{0}/{1}/{2}/{3}/{4}/{5}'.format( self.root_dir, distro, self.component, distro_version, arch, filename )
     self.entry_list[ distro ][ distro_version ][ filename ] = ( full_rpm_path, arch )
 
   def removeEntry( self, filename, distro, distro_version, arch ):
@@ -62,22 +68,22 @@ class YUMManager( LocalRepoManager ):
     try:
       del self.entry_list[ distro ][ distro_version ][ filename ]
     except KeyError:
-      logging.warning( 'rpm: unable to remove entry "%s" "%s" "%s" "%s", ignored.' % ( filename, distro, distro_version, arch ) )
+      logging.warning( 'rpm: unable to remove entry "%s" "%s" "%s" "%s", ignored.', filename, distro, distro_version, arch )
 
   def loadFile( self, filename, temp_file, distro, distro_version, arch ):
     if arch == 'all':
       arch = 'noarch'
 
-    dir_path = '%s/%s/%s/%s/%s/' % ( self.root_dir, distro, self.component, distro_version, arch )
+    dir_path = '{0}/{1}/{2}/{3}/{4}'.format( self.root_dir, distro, self.component, distro_version, arch )
     if not os.path.exists( dir_path ):
         os.makedirs( dir_path )
 
-    file_path = '%s%s' % ( dir_path, filename )
+    file_path = os.path.join( dir_path, filename )
     if self.gpg_key:
-      logging.info( 'yum: signing %s' % temp_file )
-      rpm.addMacro( '_gpg_name', self.gpg_key ) # not sure if it's bad to add this macro multiple times
-      if not rpm.addSign( temp_file, '' ): # '' -> passpharase
-        raise Exception( 'Error Signing "%s"' % temp_file )
+      logging.info( 'yum: signing %s', temp_file )
+      rpm.addMacro( '_gpg_name', self.gpg_key )  # not sure if it's bad to add this macro multiple times
+      if not rpm.addSign( temp_file, '' ):  # '' -> passpharase
+        raise Exception( 'Error Signing "{0}"'.format( temp_file ) )
 
     shutil.move( temp_file, file_path )
     ( _, sha256, _ ) = hashFile( file_path )
@@ -86,7 +92,7 @@ class YUMManager( LocalRepoManager ):
   def _writeArchMetadata( self, base_path, distro, distro_version ):
     timestamp = int( time.time() )
     repo_files = []
-    dir_path = '%s/repodata' % base_path
+    dir_path = '{0}/repodata'.format( base_path )
     if not os.path.exists( dir_path ):
       os.makedirs( dir_path )
 
@@ -95,28 +101,28 @@ class YUMManager( LocalRepoManager ):
     except KeyError:
       filename_list = []
 
-    other_full_path = '%s/other.xml' % dir_path
+    other_full_path = '{0}/other.xml'.format( dir_path )
     other_fd = open( other_full_path, 'w' )
     other_fd.write( '<?xml version="1.0" encoding="UTF-8"?>\n' )
-    other_fd.write( '<otherdata xmlns="http://linux.duke.edu/metadata/other" packages="%s">\n' % len( filename_list ) )
+    other_fd.write( '<otherdata xmlns="http://linux.duke.edu/metadata/other" packages="{0}">\n'.format( len( filename_list ) ) )
 
-    filelists_full_path = '%s/filelists.xml' % dir_path
+    filelists_full_path = '{0}/filelists.xml'.format( dir_path )
     filelists_fd = open( filelists_full_path, 'w' )
     filelists_fd.write( '<?xml version="1.0" encoding="UTF-8"?>\n' )
-    filelists_fd.write( '<filelists xmlns="http://linux.duke.edu/metadata/filelists" packages="%s">\n' % len( filename_list ) )
+    filelists_fd.write( '<filelists xmlns="http://linux.duke.edu/metadata/filelists" packages="{0}">\n'.format( len( filename_list ) ) )
 
-    primary_full_path = '%s/primary.xml' % dir_path
+    primary_full_path = '{0}/primary.xml'.format( dir_path )
     primary_fd = open( primary_full_path, 'w' )
     primary_fd.write( '<?xml version="1.0" encoding="UTF-8"?>\n' )
-    primary_fd.write( ( '<metadata packages="%s" xmlns="http://linux.duke.edu/metadata/common" xmlns:rpm="http://linux.duke.edu/metadata/rpm">\n' ) % len( filename_list ) )
+    primary_fd.write( '<metadata packages="{0}" xmlns="http://linux.duke.edu/metadata/common" xmlns:rpm="http://linux.duke.edu/metadata/rpm">\n'.format( len( filename_list ) ) )
 
     for filename in filename_list:
       ( full_rpm_path, arch ) = self.entry_list[ distro ][ distro_version ][ filename ]
-      pkg = YumLocalPackage( filename=full_rpm_path )
-      pkg._reldir = base_path
-      other_fd.write( pkg.xml_dump_other_metadata() )
-      filelists_fd.write( pkg.xml_dump_filelists_metadata() )
-      primary_fd.write( pkg.xml_dump_primary_metadata() )
+      # pkg = YumLocalPackage( filename=full_rpm_path )
+      # pkg._reldir = base_path
+      # other_fd.write( pkg.xml_dump_other_metadata() )
+      # filelists_fd.write( pkg.xml_dump_filelists_metadata() )
+      # primary_fd.write( pkg.xml_dump_primary_metadata() )
 
     other_fd.write( '</otherdata>\n' )
     other_fd.close()
@@ -137,16 +143,16 @@ class YUMManager( LocalRepoManager ):
     ( sha1, sha256, md5 ) = hashFile( primary_full_path )
     repo_files.append( { 'type': 'primary', 'href': 'primary.xml', 'checksum': sha256, 'open-checksum': sha256orig } )
 
-    repomod_full_path = '%s/repomd.xml' % dir_path
+    repomod_full_path = '{0}/repomd.xml'.format( dir_path )
     repomod_fd = open( repomod_full_path, 'w' )
     repomod_fd.write( '<?xml version="1.0" encoding="UTF-8"?>\n' )
     repomod_fd.write( '<repomd xmlns="http://linux.duke.edu/metadata/repo">\n' )
     for file in repo_files:
-      repomod_fd.write( '  <data type="%s">\n' % file[ 'type' ] )
-      repomod_fd.write( '    <location href="repodata/%s"/>\n' % file[ 'href' ] )
-      repomod_fd.write( '    <timestamp>%s</timestamp>\n' % timestamp )
-      repomod_fd.write( '    <checksum type="sha256">%s</checksum>\n' % file[ 'checksum' ] )
-      repomod_fd.write( '    <open-checksum type="sha256">%s</open-checksum>\n' % file[ 'open-checksum' ] )
+      repomod_fd.write( '  <data type="{0}">\n'.format( file[ 'type' ] ) )
+      repomod_fd.write( '    <location href="repodata/{0}"/>\n'.format( file[ 'href' ] ) )
+      repomod_fd.write( '    <timestamp>{0}</timestamp>\n'.format( timestamp ) )
+      repomod_fd.write( '    <checksum type="sha256">{0}</checksum>\n'.format( file[ 'checksum' ] ) )
+      repomod_fd.write( '    <open-checksum type="sha256">{0}</open-checksum>\n'.format( file[ 'open-checksum' ] ) )
       repomod_fd.write( '  </data>\n' )
     repomod_fd.write( '</repomd>\n' )
     repomod_fd.close()
@@ -154,7 +160,7 @@ class YUMManager( LocalRepoManager ):
   def writeMetadata(self):
     for distro in self.distro_map:
       for distro_version in self.distro_map[ distro ]:
-        base_path = '%s/%s/%s/%s' % ( self.root_dir, distro, self.component, distro_version )
+        base_path = '{0}/{1}/{2}/{3}'.format( self.root_dir, distro, self.component, distro_version )
         self._writeArchMetadata( base_path, distro, distro_version )
 
     if self.gpg_key:
@@ -165,12 +171,12 @@ class YUMManager( LocalRepoManager ):
       ctx.signers = [ key ]
 
       for distro in self.entry_list:
-        logging.info( 'yum: Signing distro %s' % distro )
+        logging.info( 'yum: Signing distro %s', distro )
         for distro_version in self.entry_list[ distro ]:
-          base_path = '%s/%s/%s/%s/repodata' % ( self.root_dir, distro, self.component, distro_version )
+          base_path = '{0}/{1}/{2}/{3}/repodata'.format( self.root_dir, distro, self.component, distro_version )
 
-          plain = open( '%s/repomd.xml' % base_path, 'r' )
-          sign = open( '%s/repomd.xml.asc' % base_path, 'w' )
+          plain = open( '{0}/repomd.xml'.format( base_path ), 'r' )
+          sign = open( '{1}/repomd.xml.asc'.format( base_path ), 'w' )
 
           ctx.sign( plain, sign, gpgme.SIG_MODE_DETACH )
 
