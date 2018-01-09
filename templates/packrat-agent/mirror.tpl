@@ -4,6 +4,7 @@
 
 [packrat]
 host: {{ packrat_master_host }}
+port: {{ packrat_master_port }}
 name: {{ packrat_repo_name }}
 psk: {{ packrat_repo_psk }}
 proxy: {{ packrat_master_proxy }}

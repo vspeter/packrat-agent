@@ -1,6 +1,6 @@
-from LocalRepoManager import LocalRepoManager
+from packratAgent.LocalRepoManager import LocalRepoManager
 
 
 class YaSTManager( LocalRepoManager ):
   def __init__( self, *args, **kargs ):
-    super( YaSTManager, self ).__init__( *args, **kargs )
+    super().__init__( *args, **kargs )

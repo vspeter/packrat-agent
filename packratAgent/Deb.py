@@ -1,38 +1,45 @@
 import arpy
-from StringIO import StringIO
+
 from gzip import GzipFile
 from tarfile import TarFile
 
 
-class Deb( object ):
+class Deb():
   def __init__( self, filename ):
+    super().__init__()
     self.filename = filename
 
   def _readControl( self ):
     ar = arpy.Archive( self.filename )
     ar.read_all_headers()
 
-    targz = ar.archived_files[ 'control.tar.gz' ].read()
+    targz = ar.archived_files[ b'control.tar.gz' ]
 
-    tar = GzipFile( fileobj=StringIO( targz ) ).read()
+    tar = GzipFile( fileobj=targz )
+    raw = TarFile( fileobj=tar )
 
-    control = TarFile( fileobj=StringIO( tar ) ).extractfile( './control' ).read()
+    control = raw.extractfile( './control' ).read()
+    raw.close()
+    tar.close()
+    ar.close()
 
     return control
 
   def getControlFields( self ):
     order = []
     results = {}
+    results[ 'Description' ] = ''
     control = self._readControl()
     doDescription = False
     for line in control.splitlines():
+      line = line.decode()
       if doDescription:
         results[ 'Description' ] += '\n'
-        results[ 'Description' ] += line
+        results[ 'Description' ] += str( line )
       else:
         pos = line.find( ':' )
-        key = line[ 0 : pos ]
-        value = line[ pos + 1 : ]
+        key = line[ 0:pos ]
+        value = line[ pos + 1: ]
         key = key.strip()
         order.append( key )
         results[ key ] = value.strip()
