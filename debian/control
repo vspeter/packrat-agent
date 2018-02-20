@@ -8,6 +8,6 @@ X-Python-Version: >= 3.4
 
 Package: packrat-agent
 Architecture: all
-Depends: python3 (>= 3.4), python3-simplejson, python3-cinp (>=0.9), python3-arpy, plato-client, python3-gpgme, python3-rpm, python3-pysqlite2, libsqlite3-0, ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
+Depends: python3 (>= 3.4), python3-simplejson, python3-cinp (>=0.9), python3-arpy, python3-gpgme, python3-rpm, python-pysqlite2, libsqlite3-0, ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
 Description: packrat agent
   packrat agent

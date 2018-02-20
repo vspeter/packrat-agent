@@ -5,7 +5,7 @@ packrat-agent (0.8-1) xenial; urgency=medium
   * added preliminary PyPi support
   * temporarly disable YUM (dependant package was python2)
 
- -- Peter <peter@xps13-01>  Wed, 08 Nov 2017 11:02:31 -0700
+ -- Peter <peter.howe@virtustream.com>  Wed, 08 Nov 2017 11:02:31 -0700
 
 packrat-agent (0.7-1) trusty; urgency=medium
 
@@ -14,7 +14,7 @@ packrat-agent (0.7-1) trusty; urgency=medium
   * directory from packrat
   * sha256 of signed files retained
 
- -- Peter <peter@blueboy>  Fri, 08 Jul 2016 08:53:06 -0600
+ -- Peter <<peter.howe@virtustream.com>  Fri, 08 Jul 2016 08:53:06 -0600
 
 packrat-agent (0.6-1) trusty; urgency=medium
 
@@ -22,35 +22,35 @@ packrat-agent (0.6-1) trusty; urgency=medium
   * local checks aginst sha256s from packrat
   * poller for instant updates
 
- -- Peter <peter@blueboy>  Mon, 27 Jun 2016 07:44:09 -0600
+ -- Peter <<peter.howe@virtustream.com>  Mon, 27 Jun 2016 07:44:09 -0600
 
 packrat-agent (0.5-1) trusty; urgency=medium
 
   * apt pool directory tweek
 
- -- Peter <peter@blueboy>  Wed, 06 Jan 2016 14:03:31 -0700
+ -- Peter <<peter.howe@virtustream.com>  Wed, 06 Jan 2016 14:03:31 -0700
 
 packrat-agent (0.4-1) trusty; urgency=medium
 
   * JSON repo will detect some more specific file types
 
- -- Peter <peter@blueboy>  Tue, 25 Aug 2015 09:46:34 -0600
+ -- Peter <<peter.howe@virtustream.com>  Tue, 25 Aug 2015 09:46:34 -0600
 
 packrat-agent (0.3-1) trusty; urgency=medium
 
   * Improved YUM/RPM handeling
   * RUM Package Signing
 
- -- Peter <peter@blueboy>  Tue, 14 Jul 2015 09:34:14 -0600
+ -- Peter <<peter.howe@virtustream.com>  Tue, 14 Jul 2015 09:34:14 -0600
 
 packrat-agent (0.2-1) trusty; urgency=medium
 
   * Added JSON Repo Support
 
- -- Peter <peter@blueboy>  Fri, 03 Jul 2015 11:36:39 -0600
+ -- Peter <<peter.howe@virtustream.com>  Fri, 03 Jul 2015 11:36:39 -0600
 
 packrat-agent (0.1-1) trusty; urgency=medium
 
   * Initial release.
 
- -- Peter <peter@blueboy>  Mon, 25 May 2015 23:32:45 -0600
+ -- Peter <<peter.howe@virtustream.com>  Mon, 25 May 2015 23:32:45 -0600

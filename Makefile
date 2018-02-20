@@ -3,7 +3,12 @@ all:
 install:
 	mkdir -p $(DESTDIR)usr/sbin
 	mkdir -p $(DESTDIR)etc/packrat
+	mkdir -p $(DESTDIR)etc/apache2/sites-available
+
 	install -m 755 sbin/packrat-agent $(DESTDIR)usr/sbin
+	install -m 644 mirror.conf.sample $(DESTDIR)etc/packrat/mirror.conf
+	install -m 644 apache.conf $(DESTDIR)etc/apache2/sites-available/repo.conf
+
 
 clean:
 	$(RM) -fr build

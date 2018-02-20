@@ -24,9 +24,14 @@ set -e
 
 case "$1" in
     configure)
-        /usr/sbin/configManager -c packrat-agent
-        mkdir -p /var/lib/packratAgent
-        /etc/init.d/cron reload || true
+        if [ ! -d /var/lib/packratAgent ] ;
+        then
+          mkdir -p /var/lib/packratAgent
+        fi
+
+        a2ensite repo.conf
+
+        /etc/init.d/apache2 restart
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
