@@ -39,7 +39,7 @@ example configuration::
   gpg_sign_key: B2CAFB61
   state_db: /var/lib/packratAgent/state.db
   full_sync_interval: 900
-  keep_file: /var/www/repo/repo-key
+  keep_file_list: /var/www/repo/repo-key
 
 packrat section
 ---------------
