@@ -6,6 +6,7 @@ import errno
 
 from cinp import client
 
+
 class PackratConnectionException( Exception ):
   pass
 
@@ -32,7 +33,7 @@ class KeepAlive( Thread ):
 
 
 class Packrat():
-  def __init__( self, host, proxy, port, name, psk ):
+  def __init__( self, host, proxy, name, psk ):
     super().__init__()
 
     try:
@@ -43,7 +44,7 @@ class Packrat():
       else:
         raise e
 
-    self.cinp = client.CInP( host, '/api/v1/', port, proxy )
+    self.cinp = client.CInP( host, '/api/v1/', proxy )
     #self.token = self.cinp.call( '/api/v1/Auth(login)', { 'username': name, 'password': psk } )[ 'value' ]
     #self.cinp.setAuth( name, self.token )
     #self.keepalive = KeepAlive( self.cinp )

@@ -1,3 +1,9 @@
+packrat-agent (0.9-1) xenial; urgency=medium
+
+  * Restored YUM Support
+
+ -- Peter <peter@xps13-01>  Tue, 12 Jun 2018 12:17:38 -0600
+
 packrat-agent (0.8-1) xenial; urgency=medium
 
   * Upgraded to python3

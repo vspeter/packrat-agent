@@ -1,6 +1,5 @@
 [packrat]
-host: http://127.0.0.1
-port: 80
+host: http://127.0.0.1:80
 name: dev
 psk: dev
 proxy:

@@ -3,7 +3,7 @@ import time
 import logging
 import gpgme
 import shutil
-# from packages import YumLocalPackage
+from packratAgent.yum.packages import YumLocalPackage
 from rpm import rpm
 
 from packratAgent.LocalRepoManager import LocalRepoManager, hashFile
@@ -118,11 +118,10 @@ class YUMManager( LocalRepoManager ):
 
     for filename in filename_list:
       ( full_rpm_path, arch ) = self.entry_list[ distro ][ distro_version ][ filename ]
-      # pkg = YumLocalPackage( filename=full_rpm_path )
-      # pkg._reldir = base_path
-      # other_fd.write( pkg.xml_dump_other_metadata() )
-      # filelists_fd.write( pkg.xml_dump_filelists_metadata() )
-      # primary_fd.write( pkg.xml_dump_primary_metadata() )
+      pkg = YumLocalPackage( filename=full_rpm_path, relpath=filename )
+      other_fd.write( pkg.xml_dump_other_metadata() )
+      filelists_fd.write( pkg.xml_dump_filelists_metadata() )
+      primary_fd.write( pkg.xml_dump_primary_metadata() )
 
     other_fd.write( '</otherdata>\n' )
     other_fd.close()

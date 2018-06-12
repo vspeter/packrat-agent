@@ -19,7 +19,7 @@ class custom_build( build_py ):
           self.build_module(module, module_file, package)
 
 setup( name='packrat-agent',
-       version='0.1',
+       version='0.9',
        description='Packrat Agent',
        author='Peter Howe',
        author_email='peter.howe@emc.com',
