@@ -1,13 +1,13 @@
 Source: packrat-agent
-Section: nonfree/autobots
+Section: multiverse/python
 Priority: optional
 Maintainer: Peter Howe <peter.howe@emc.com>
-Build-Depends: cdbs, debhelper (>= 7), python3 (>= 3.4), python3-dev (>=3.4), python3-setuptools (>=20.0), lsb-release
+Build-Depends: debhelper (>= 9), python3 (>= 3.4), python3-dev (>=3.4), python3-setuptools (>=20.0), lsb-release
 Standards-Version: 3.8.3
 X-Python-Version: >= 3.4
 
 Package: packrat-agent
-Architecture: any
-Depends: python3 (>= 3.4), python3-simplejson, python3-cinp (>=0.9), python3-arpy, python3-gpgme, python3-rpm, python-pysqlite2, libsqlite3-0, apache2, ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
+Architecture: all
+Depends: python3 (>= 3.4), python3-simplejson, python3-cinp (>=0.9), python3-arpy, python3-gpgme, python3-rpm, python-pysqlite2, libsqlite3-0, apache2, ${misc:Depends}
 Description: packrat agent
   packrat agent

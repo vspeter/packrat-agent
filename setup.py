@@ -23,7 +23,7 @@ setup( name='packrat-agent',
        description='Packrat Agent',
        author='Peter Howe',
        author_email='peter.howe@emc.com',
-       packages=[ 'packratAgent' ],
+       packages=[ 'packratAgent', 'packratAgent/yum' ],
        cmdclass={ 'build_py': custom_build }
      )
 
