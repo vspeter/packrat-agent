@@ -144,9 +144,13 @@ class DockerManager( LocalRepoManager ):
     shutil.move( temp_file, file_path )
 
   def writeMetadata( self ):
+    root_path = os.path.join( self.root_dir, 'v2' )
+    if not os.path.exists( root_path ):
+      os.makedirs( root_path )
+
     for container_name in self.entry_list:
       logging.debug( 'docker: writing manifests/tags for "{0}"'.format( container_name ) )
-      base_path = os.path.join( self.root_dir, 'v2', container_name )
+      base_path = os.path.join( root_path, container_name )
       manifest_path = os.path.join( base_path, 'manifests' )
       tag_path = os.path.join( base_path, 'tags' )
 
@@ -175,7 +179,7 @@ class DockerManager( LocalRepoManager ):
       wrk.close()
 
     logging.debug( 'docker: writing catalog' )
-    wrk = open( os.path.join( self.root_dir, 'v2/_catalog' ), 'w' )
+    wrk = open( os.path.join( root_path, '_catalog' ), 'w' )
     wrk.write( json.dumps( { 'repositories': list( self.entry_list.keys() ) }, indent=2 ) )
     wrk.close()
 

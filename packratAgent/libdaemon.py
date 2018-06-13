@@ -91,9 +91,9 @@ class Daemon():
     sys.stderr.flush()
     tmp = open( '/dev/null', 'r' )
     os.dup2( tmp.fileno(), sys.stdin.fileno() )
-    tmp = open( '/dev/null', 'a+' )
+    tmp = open( '/dev/null', 'ab+', 0 )
     os.dup2( tmp.fileno(), sys.stdout.fileno() )
-    tmp = open( '/dev/null', 'a+', 0 )
+    tmp = open( '/dev/null', 'ab+', 0 )
     os.dup2( tmp.fileno(), sys.stderr.fileno() )
 
   def _writepid( self ):

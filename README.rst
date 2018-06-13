@@ -39,7 +39,7 @@ example configuration::
   gpg_sign_key: B2CAFB61
   state_db: /var/lib/packratAgent/state.db
   full_sync_interval: 900
-  keep_file: /var/www/repo/repo-key
+  keep_file_list: /var/www/repo/repo-key
 
 packrat section
 ---------------
@@ -158,9 +158,10 @@ for example::
   sub   2048R/6F9893FE 2016-02-10
 
 
-This will list our newly created key, there are two parts to the key the Private key (labeld with (sub)), this is what is used to sign the repo, do not let this key
-out of your control, and keep it backed up, otherwise re-keying all the subscribers to the repo will be painfull.  The other key is the Public Key (labeld with (pub)).
-edit /etc/packrat/mirror.conf and enter the hash ( ie: 6F9893FE ) as the gpg_sign_key.  Now export the public key::
+This will list our newly created key, there are two parts to the key the Subkey (labeld with (sub)), this is what is used to sign the repo.  The other key is the Public Key (labeld with (pub)).
+edit /etc/packrat/mirror.conf and enter the hash ( ie: 6F9893FE ) as the gpg_sign_key.  NOTE: there is also a Private key (viewed with another option).  For more information about GPG and how
+the keys interact and their use see http://www.gnupg.org.  If you intend for your public key to be trusted long term or enfoce package security with signatures, you will want to export and store
+the Master Key Pair, see the gpnupg site for details on that. Now export the public key::
 
   gpg --armor --output /var/www/repo/repo-key --export < the pub ie: B2CAFB61 >
 
@@ -173,3 +174,17 @@ restart repoSyc/packratAgent you should now see messages like ::
   INFO:root:apt: Signing distro xenial
 
 in your logs.
+
+
+NOTE:
+
+newer versions of gpg don't show they subkey fingerprint by default, add `--with-subkey-fingerprints` to show them::
+
+  $ gpg --list-keys --with-subkey-fingerprints
+  /root/.gnupg/pubring.kbx
+  ------------------------------
+  pub   rsa3072 2018-06-13 [SC] [expires: 2020-06-12]
+        8BFE3D3D3945F40B1FDF16E06662EFCFB2B63C30
+  uid           [ultimate] testing
+  sub   rsa3072 2018-06-13 [E] [expires: 2020-06-12]
+        AC418843B048A55266269920B94271513106BFA6

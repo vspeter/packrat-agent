@@ -3,8 +3,8 @@ import time
 import logging
 import gpgme
 import shutil
-# from packages import YumLocalPackage
-from rpm import rpm
+from packratAgent.yum.packages import YumLocalPackage
+import rpm
 
 from packratAgent.LocalRepoManager import LocalRepoManager, hashFile
 
@@ -81,8 +81,7 @@ class YUMManager( LocalRepoManager ):
     file_path = os.path.join( dir_path, filename )
     if self.gpg_key:
       logging.info( 'yum: signing %s', temp_file )
-      rpm.addMacro( '_gpg_name', self.gpg_key )  # not sure if it's bad to add this macro multiple times
-      if not rpm.addSign( temp_file, '' ):  # '' -> passpharase
+      if not rpm.addSign( path=temp_file, keyid=self.gpg_key ):  # there is a bug in python3-rpm up to version 4.14.1+dfsg1-2
         raise Exception( 'Error Signing "{0}"'.format( temp_file ) )
 
     shutil.move( temp_file, file_path )
@@ -118,11 +117,10 @@ class YUMManager( LocalRepoManager ):
 
     for filename in filename_list:
       ( full_rpm_path, arch ) = self.entry_list[ distro ][ distro_version ][ filename ]
-      # pkg = YumLocalPackage( filename=full_rpm_path )
-      # pkg._reldir = base_path
-      # other_fd.write( pkg.xml_dump_other_metadata() )
-      # filelists_fd.write( pkg.xml_dump_filelists_metadata() )
-      # primary_fd.write( pkg.xml_dump_primary_metadata() )
+      pkg = YumLocalPackage( filename=full_rpm_path, relpath=filename )
+      other_fd.write( pkg.xml_dump_other_metadata() )
+      filelists_fd.write( pkg.xml_dump_filelists_metadata() )
+      primary_fd.write( pkg.xml_dump_primary_metadata() )
 
     other_fd.write( '</otherdata>\n' )
     other_fd.close()
@@ -176,7 +174,7 @@ class YUMManager( LocalRepoManager ):
           base_path = '{0}/{1}/{2}/{3}/repodata'.format( self.root_dir, distro, self.component, distro_version )
 
           plain = open( '{0}/repomd.xml'.format( base_path ), 'r' )
-          sign = open( '{1}/repomd.xml.asc'.format( base_path ), 'w' )
+          sign = open( '{0}/repomd.xml.asc'.format( base_path ), 'w' )
 
           ctx.sign( plain, sign, gpgme.SIG_MODE_DETACH )
 
