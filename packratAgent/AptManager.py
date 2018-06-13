@@ -198,8 +198,8 @@ class AptManager( LocalRepoManager ):
         logging.info( 'apt: Signing distro %s', distro )
         base_path = '{0}/dists/{1}'.format( self.root_dir, distro )
 
-        plain = open( '{0}/Release'.format( base_path ), 'r' )
-        sign = open( '{0}/Release.gpg'.format( base_path ), 'w' )
+        plain = open( '{0}/Release'.format( base_path ), 'rb' )
+        sign = open( '{0}/Release.gpg'.format( base_path ), 'wb' )
 
         ctx.sign( plain, sign, gpgme.SIG_MODE_DETACH )
 

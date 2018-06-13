@@ -1,11 +1,19 @@
 all:
+	./setup.py build
 
 install:
-	mkdir -p $(DESTDIR)usr/sbin
-	mkdir -p $(DESTDIR)etc/packrat
-	install -m 755 sbin/packrat-agent $(DESTDIR)usr/sbin
+	mkdir -p $(DESTDIR)/usr/sbin
+	mkdir -p $(DESTDIR)/etc/packrat
+	mkdir -p $(DESTDIR)/etc/apache2/sites-available
+
+	install -m 755 sbin/packrat-agent $(DESTDIR)/usr/sbin
+	install -m 644 mirror.conf.sample $(DESTDIR)/etc/packrat/mirror.conf
+	install -m 644 apache.conf $(DESTDIR)/etc/apache2/sites-available/repo.conf
+
+	./setup.py install --root $(DESTDIR) --install-purelib=/usr/lib/python3/dist-packages/ --prefix=/usr --no-compile -O0
 
 clean:
+	./setup.py clean
 	$(RM) -fr build
 	$(RM) -f dpkg
 
@@ -16,10 +24,9 @@ test-distros:
 	echo xenial
 
 test-requires:
-	echo python3 python3-dateutil python3-pip python3-pytest python3-pytest-cov
+	echo python3 python3-dateutil python3-pip python3-pytest python3-pytest-cov python3-cinp
 
 test-setup:
-	pip3 --proxy=http://192.168.200.53:3128 install cinp
 	pip3 install -e .
 
 test:

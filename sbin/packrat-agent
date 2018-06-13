@@ -75,7 +75,7 @@ class PackratAgent( Daemon ):
       proxy = None
 
     try:
-      packrat = Packrat( config.get( 'packrat', 'host' ), proxy, config.get( 'packrat', 'port' ), config.get( 'packrat', 'name' ), config.get( 'packrat', 'psk' ) )
+      packrat = Packrat( config.get( 'packrat', 'host' ), proxy, config.get( 'packrat', 'name' ), config.get( 'packrat', 'psk' ) )
     except configparser.Error:
       logging.exception( 'Error retreiving host, proxy, name, and/or psk from config file' )
       return False

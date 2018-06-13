@@ -1,0 +1,13 @@
+[packrat]
+host: http://127.0.0.1:80
+name: dev
+psk: dev
+proxy:
+
+[mirror]
+description: dev-mirror
+root_dir: /var/www/repo
+gpg_sign_key:
+state_db: /var/lib/packratAgent/state.db
+full_sync_interval: 900
+keep_file_list: /var/www/repo/repo-key
