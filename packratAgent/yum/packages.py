@@ -269,7 +269,7 @@ class YumLocalPackage(YumHeaderPackage):
         self.localpath = filename
 
         try:
-            ts = rpm.TransactionSet('/')
+            ts = rpm.TransactionSet()
             ts.setVSFlags(rpm._RPMVSF_NOSIGNATURES | rpm._RPMVSF_NODIGESTS)
             hdr = hdrFromPackage(ts, self.localpath)
         except Exception as e:

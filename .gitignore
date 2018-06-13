@@ -2,6 +2,7 @@
 .ropeproject
 
 build
+dpkg
 
 docs/build
 

@@ -10,7 +10,7 @@ install:
 	install -m 644 mirror.conf.sample $(DESTDIR)/etc/packrat/mirror.conf
 	install -m 644 apache.conf $(DESTDIR)/etc/apache2/sites-available/repo.conf
 
-	./setup.py install --root $(DESTDIR)
+	./setup.py install --root $(DESTDIR) --install-purelib=/usr/lib/python3/dist-packages/ --prefix=/usr --no-compile -O0
 
 clean:
 	./setup.py clean
