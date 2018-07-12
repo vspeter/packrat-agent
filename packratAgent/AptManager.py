@@ -194,7 +194,7 @@ class AptManager( LocalRepoManager ):
       key = ctx.get_key( self.gpg_key )
       ctx.signers = [ key ]
 
-      for distro in self.entry_list:
+      for distro in self.distro_map[ 'debian' ]:
         logging.info( 'apt: Signing distro %s', distro )
         base_path = '{0}/dists/{1}'.format( self.root_dir, distro )
 

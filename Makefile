@@ -16,8 +16,6 @@ clean:
 	./setup.py clean
 	$(RM) -fr build
 	$(RM) -f dpkg
-
-full-clean: clean
 	dh_clean
 
 test-distros:

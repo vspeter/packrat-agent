@@ -168,7 +168,7 @@ class YUMManager( LocalRepoManager ):
       key = ctx.get_key( self.gpg_key )
       ctx.signers = [ key ]
 
-      for distro in self.entry_list:
+      for distro in self.distro_map:
         logging.info( 'yum: Signing distro %s', distro )
         for distro_version in self.entry_list[ distro ]:
           base_path = '{0}/{1}/{2}/{3}/repodata'.format( self.root_dir, distro, self.component, distro_version )

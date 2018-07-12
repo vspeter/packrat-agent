@@ -1,6 +1,6 @@
 import arpy
-
 from gzip import GzipFile
+from lzma import LZMAFile
 from tarfile import TarFile
 
 
@@ -13,9 +13,16 @@ class Deb():
     ar = arpy.Archive( self.filename )
     ar.read_all_headers()
 
-    targz = ar.archived_files[ b'control.tar.gz' ]
+    if b'control.tar.xz' in ar.archived_files:
+      tar = LZMAFile( filename=ar.archived_files[ b'control.tar.xz' ] )
+      # NOTE: this requires https://github.com/viraptor/arpy/pull/5
 
-    tar = GzipFile( fileobj=targz )
+    elif b'control.tar.gz' in ar.archived_files:
+      tar = GzipFile( fileobj=ar.archived_files[ b'control.tar.gz' ] )
+
+    else:
+      raise ValueError( 'Unable to find control file' )
+
     raw = TarFile( fileobj=tar )
 
     control = raw.extractfile( './control' ).read()
