@@ -41,6 +41,6 @@ dpkg:
 	touch dpkg
 
 dpkg-file:
-	@echo $(shell ls ../packrat-agent_*.deb):trusty
+	@echo $(shell ls ../packrat-agent_*.deb):xenial
 
 .PHONY: all install clean dpkg-distros dpkg-requires dpkg-file
