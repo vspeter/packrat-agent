@@ -237,7 +237,6 @@ class YumHeaderPackage(YumAvailablePackage):
         return epoch
 
     def __getattr__(self, thing):
-        print( '----{0}----'.format(  thing ))
         # FIXME - if an error - return AttributeError, not KeyError
         # ONLY FIX THIS AFTER THE API BREAK
         if thing.startswith('__') and thing.endswith('__'):
@@ -645,7 +644,7 @@ class YumLocalPackage(YumHeaderPackage):
             if flags:
                 prcostring += ''' flags="{0}"'''.format( to_xml(flags, attrib=True) )
                 if e:
-                    prcostring += ''' epoch={0}'''.format( to_xml(e, attrib=True) )
+                    prcostring += ''' epoch="{0}"'''.format( to_xml(e, attrib=True) )
                 if v:
                     prcostring += ''' ver="{0}"'''.format( to_xml(v, attrib=True) )
                 if r:

@@ -81,8 +81,21 @@ class YUMManager( LocalRepoManager ):
     file_path = os.path.join( dir_path, filename )
     if self.gpg_key:
       logging.info( 'yum: signing %s', temp_file )
-      if not rpm.addSign( path=temp_file, keyid=self.gpg_key ):  # there is a bug in python3-rpm up to version 4.14.1+dfsg1-2
+      if not rpm.addSign( path=temp_file, keyid=self.gpg_key, passPhrase='' ):
         raise Exception( 'Error Signing "{0}"'.format( temp_file ) )
+
+#  in the stock python3-rpm addSign is missing due to (xenial):
+#  https://github.com/rpm-software-management/rpm/commit/eb632e5158fa4ef993b0e5df2a354f0be7a7a71d
+#  so, get and empty dir and:
+#  apt source python3-rpm
+#  cd rpm-4.12.0.1+dfsg1
+#  nano python/setup.py.in and change line 51 'b' to 's'
+#  dpkg-buildpackage -b
+#  cd ..
+#  dpkg -i python3-rpm_4.12.0.1+dfsg1-3build3_amd64.deb
+#  all set
+#  bionic there is this bug: https://bugs.launchpad.net/ubuntu/+source/rpm/+bug/1776815
+#  follow simmaler steps
 
     shutil.move( temp_file, file_path )
     ( _, sha256, _ ) = hashFile( file_path )
@@ -117,7 +130,7 @@ class YUMManager( LocalRepoManager ):
 
     for filename in filename_list:
       ( full_rpm_path, arch ) = self.entry_list[ distro ][ distro_version ][ filename ]
-      pkg = YumLocalPackage( filename=full_rpm_path, relpath=filename )
+      pkg = YumLocalPackage( filename=full_rpm_path, relpath='{0}/{1}'.format( arch, filename ) )
       other_fd.write( pkg.xml_dump_other_metadata() )
       filelists_fd.write( pkg.xml_dump_filelists_metadata() )
       primary_fd.write( pkg.xml_dump_primary_metadata() )
@@ -173,8 +186,8 @@ class YUMManager( LocalRepoManager ):
         for distro_version in self.entry_list[ distro ]:
           base_path = '{0}/{1}/{2}/{3}/repodata'.format( self.root_dir, distro, self.component, distro_version )
 
-          plain = open( '{0}/repomd.xml'.format( base_path ), 'r' )
-          sign = open( '{0}/repomd.xml.asc'.format( base_path ), 'w' )
+          plain = open( '{0}/repomd.xml'.format( base_path ), 'rb' )
+          sign = open( '{0}/repomd.xml.asc'.format( base_path ), 'wb' )
 
           ctx.sign( plain, sign, gpgme.SIG_MODE_DETACH )
 
