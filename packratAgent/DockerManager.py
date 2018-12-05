@@ -95,7 +95,7 @@ class DockerManager( LocalRepoManager ):
     return result
 
   def addEntry( self, type, filename, distro, distro_version, arch ):
-    logging.debug( 'docker: Got Entry for package: {0} arch: {1} distro: {2}'.format( filename, arch, distro_version ) )
+    logging.debug( 'docker: Got Entry for package: "%s" arch: "%s"', filename, arch )
 
     ( container_name, version ) = filename.split( '_', 1 )
     cache_dir = container_name[ 0:6 ]
@@ -149,7 +149,7 @@ class DockerManager( LocalRepoManager ):
       os.makedirs( root_path )
 
     for container_name in self.entry_list:
-      logging.debug( 'docker: writing manifests/tags for "{0}"'.format( container_name ) )
+      logging.debug( 'docker: writing manifests/tags for "%s"', container_name )
       base_path = os.path.join( root_path, container_name )
       manifest_path = os.path.join( base_path, 'manifests' )
       tag_path = os.path.join( base_path, 'tags' )

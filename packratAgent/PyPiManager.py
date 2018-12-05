@@ -29,7 +29,7 @@ class PyPiManager( LocalRepoManager ):
       logging.warning( 'pypi: New entry not a python, skipping...' )
       return
 
-    logging.debug( 'pypi: Got Entry for package: %s', filename )
+    logging.debug( 'pypi: Got Entry for package: "%s"', filename )
     ( simple_dir, _ ) = filename.split( '-', 1 )
     package_dir = simple_dir[ 0:6 ]
     package_path = '{0}/packages/{1}/{2}'.format( self.root_dir, package_dir, filename )

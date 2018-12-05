@@ -53,7 +53,7 @@ class AptManager( LocalRepoManager ):
       for tmp in self.arch_list:
         self.entry_list[ distro_version ][ tmp ] = {}
 
-    logging.debug( 'apt: Got Entry for package: %s arch: %s distro: %s', filename, arch, distro_version )
+    logging.debug( 'apt: Got Entry for package: "%s" arch: "%s" distro: "%s"', filename, arch, distro_version )
     ( pool_dir, _ ) = filename.split( '_', 1 )
     pool_dir = pool_dir[ 0:6 ]
     deb_path = 'pool/{0}/{1}'.format( pool_dir, filename )
@@ -130,7 +130,7 @@ class AptManager( LocalRepoManager ):
     except KeyError:
       filename_list = []
     for filename in filename_list:
-      logging.debug( 'apt: Writing package %s', filename )
+      logging.debug( 'apt: Writing package "%s"', filename )
       ( deb_path, sha1, sha256, md5, size, field_order, fields ) = self.entry_list[ distro ][ arch ][ filename ]
 
       for field in field_order:
@@ -155,13 +155,13 @@ class AptManager( LocalRepoManager ):
     file_sizes = {}
 
     for distro in self.distro_map[ 'debian' ]:
-      logging.debug( 'apt: Writing distro %s', distro )
+      logging.debug( 'apt: Writing distro "%s"', distro )
       base_path = '{0}/dists/{1}'.format( self.root_dir, distro )
       if not os.path.exists( base_path ):
         os.makedirs( base_path )
 
       for arch in self.arch_list:
-        logging.debug( 'apt: Writing arch %s', arch )
+        logging.debug( 'apt: Writing arch "%s"', arch )
         self._writeArchMetadata( base_path, distro, arch, file_hashes, file_sizes )
 
       wrk = open( '{0}/Release'.format( base_path ), 'w' )
@@ -195,7 +195,7 @@ class AptManager( LocalRepoManager ):
       ctx.signers = [ key ]
 
       for distro in self.distro_map[ 'debian' ]:
-        logging.info( 'apt: Signing distro %s', distro )
+        logging.info( 'apt: Signing distro "%s"', distro )
         base_path = '{0}/dists/{1}'.format( self.root_dir, distro )
 
         plain = open( '{0}/Release'.format( base_path ), 'rb' )
