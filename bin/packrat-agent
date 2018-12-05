@@ -11,7 +11,7 @@ from packratAgent.Packrat import Packrat
 
 class PackratAgent( Daemon ):
   def __init__( self, interactive ):
-    super().__init__( 'packratAgent', '/tmp/packratAgent.pid', interactive, '/tmp/packratAgent.err' )
+    super().__init__( 'packratAgent', '/var/run/packratAgent.pid', interactive, '/var/log/packratAgent.err' )
     self.mirror = None
     self.full_sync_interval = 900
     self.cont = True

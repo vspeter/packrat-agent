@@ -16,8 +16,6 @@ clean:
 	./setup.py clean
 	$(RM) -fr build
 	$(RM) -f dpkg
-
-full-clean: clean
 	dh_clean
 
 test-distros:
@@ -43,6 +41,6 @@ dpkg:
 	touch dpkg
 
 dpkg-file:
-	@echo $(shell ls ../packrat-agent_*.deb):trusty
+	@echo $(shell ls ../packrat-agent_*.deb):xenial
 
 .PHONY: all install clean dpkg-distros dpkg-requires dpkg-file
