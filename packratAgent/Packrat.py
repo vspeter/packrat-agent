@@ -1,8 +1,8 @@
 import logging
 import os
 import errno
-#import time
-#from threading import Thread
+# import time
+# from threading import Thread
 
 from cinp import client
 
@@ -13,6 +13,7 @@ class PackratConnectionException( Exception ):
 
 class PackratException( Exception ):
   pass
+
 
 PACKRAT_API_VERSION = '1.5'
 DOWNLOAD_TMP_DIR = '/tmp/packratAgent'
@@ -45,10 +46,10 @@ class Packrat():
         raise e
 
     self.cinp = client.CInP( host, '/api/v1/', proxy )
-    #self.token = self.cinp.call( '/api/v1/Auth(login)', { 'username': name, 'password': psk } )[ 'value' ]
-    #self.cinp.setAuth( name, self.token )
-    #self.keepalive = KeepAlive( self.cinp )
-    #self.keepalive.start()
+    # self.token = self.cinp.call( '/api/v1/Auth(login)', { 'username': name, 'password': psk } )[ 'value' ]
+    # self.cinp.setAuth( name, self.token )
+    # self.keepalive = KeepAlive( self.cinp )
+    # self.keepalive.start()
     self.name = name
     root = self.cinp.describe( '/api/v1/Repo' )
     if root[ 'api-version' ] != PACKRAT_API_VERSION:

@@ -45,7 +45,7 @@ class YUMManager( LocalRepoManager ):
       logging.warning( 'yum: New entry not a rpm, skipping...' )
       return
 
-    logging.debug( 'yum: Got Entry for package: %s arch: %s distro: %s distro_version: %s', filename, arch, distro, distro_version )
+    logging.debug( 'yum: Got Entry for package: "%s" arch: "%s" distro: "%s" distro_version: "%s"', filename, arch, distro, distro_version )
 
     try:
       self.entry_list[ distro ]
@@ -80,7 +80,7 @@ class YUMManager( LocalRepoManager ):
 
     file_path = os.path.join( dir_path, filename )
     if self.gpg_key:
-      logging.info( 'yum: signing %s', temp_file )
+      logging.info( 'yum: signing "%s"', temp_file )
       if not rpm.addSign( path=temp_file, keyid=self.gpg_key, passPhrase='' ):
         raise Exception( 'Error Signing "{0}"'.format( temp_file ) )
 
@@ -168,7 +168,7 @@ class YUMManager( LocalRepoManager ):
     repomod_fd.write( '</repomd>\n' )
     repomod_fd.close()
 
-  def writeMetadata(self):
+  def writeMetadata( self ):
     for distro in self.distro_map:
       for distro_version in self.distro_map[ distro ]:
         base_path = '{0}/{1}/{2}/{3}'.format( self.root_dir, distro, self.component, distro_version )
@@ -182,8 +182,8 @@ class YUMManager( LocalRepoManager ):
       ctx.signers = [ key ]
 
       for distro in self.distro_map:
-        logging.info( 'yum: Signing distro %s', distro )
-        for distro_version in self.entry_list[ distro ]:
+        logging.info( 'yum: Signing distro "%s"', distro )
+        for distro_version in self.distro_map[ distro ]:
           base_path = '{0}/{1}/{2}/{3}/repodata'.format( self.root_dir, distro, self.component, distro_version )
 
           plain = open( '{0}/repomd.xml'.format( base_path ), 'rb' )

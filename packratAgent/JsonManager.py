@@ -59,40 +59,32 @@ class JSONManager( LocalRepoManager ):
   def metadataFiles( self ):
     result = []
     base_path = '{0}/_repo_{1}'.format( self.root_dir, self.component )
-    for distro in self.distro_map:
-      for distro_version in self.distro_map[ distro ]:
-        for arch in self.arch_list:
-          result.append( '{0}/MANIFEST_{1}-{2}-{3}.json'.format( base_path, distro, distro_version, arch ) )
-          result.append( '{0}/MANIFEST_{1}-{2}-{3}.json.gpg'.format( base_path, distro, distro_version, arch ) )
+    for arch in self.arch_list:
+      result.append( '{0}/MANIFEST_{1}.json'.format( base_path, arch ) )
+      result.append( '{0}/MANIFEST_{1}.json.gpg'.format( base_path, arch ) )
 
     return result
 
   def addEntry( self, type, filename, distro, distro_version, arch ):
-    logging.debug( 'json: Got Entry for package: %s arch: %s distro: %s', filename, arch, distro_version )
+    logging.debug( 'json: Got Entry for package: "%s" arch: "%s"', filename, arch )
     ( package, _, _ ) = _splitFileName( filename )
     file_path = os.path.join( package, filename )
     full_file_path = os.path.join( self.root_dir, file_path )
     size = os.path.getsize( full_file_path )
     ( sha1, sha256, md5 ) = hashFile( full_file_path )
 
-    if distro not in self.entry_list:
-      self.entry_list[ distro ] = {}
-
-    if distro_version not in self.entry_list[ distro ]:
-      self.entry_list[ distro ][ distro_version ] = {}
-
-    if arch not in self.entry_list[ distro ][ distro_version ]:
-      self.entry_list[ distro ][ distro_version ][ arch ] = {}
+    if arch not in self.entry_list:
+      self.entry_list[ arch ] = {}
 
     type = _getType( type, filename )  # the type we get here is passed down from packrat, which usually is generic, we need to get more specific
 
-    self.entry_list[ distro ][ distro_version ][ arch ][ filename ] = ( file_path, type, sha1, sha256, md5, size )
+    self.entry_list[ arch ][ filename ] = ( file_path, type, sha1, sha256, md5, size )
 
   def removeEntry( self, filename, distro, distro_version, arch ):
     try:
-      del self.entry_list[ distro ][ distro_version ][ arch ][ filename ]
+      del self.entry_list[ arch ][ filename ]
     except KeyError:
-      logging.warning( 'json: unable to remove entry "%s" "%s" "%s" "%s", ignored.', filename, distro, distro_version, arch )
+      logging.warning( 'json: unable to remove entry "%s" "%s", ignored.', filename, arch )
 
   def loadFile( self, filename, temp_file, distro, distro_version, arch ):
     ( package, _, _ ) = _splitFileName( filename )
@@ -110,35 +102,33 @@ class JSONManager( LocalRepoManager ):
     if not os.path.exists( base_path ):
       os.makedirs( base_path )
 
-    for distro in self.distro_map:
-      for distro_version in self.distro_map[ distro ]:
-        for arch in self.arch_list:
-          logging.debug( 'json: Writing distro %s, distro version %s, arch %s', distro, distro_version, arch )
-          data = {}
-          try:
-            filename_list = self.entry_list[ distro ][ distro_version ][ arch ]
-          except KeyError:
-            filename_list = []
+    for arch in self.arch_list:
+      logging.debug( 'json: Writing arch "%s"', arch )
+      data = {}
+      try:
+        filename_list = self.entry_list[ arch ]
+      except KeyError:
+        filename_list = []
 
-          for filename in filename_list:
-            entry = self.entry_list[ distro ][ distro_version ][ arch ][ filename ]
-            ( package, version, _ ) = _splitFileName( filename )
-            if package not in data:
-              data[ package ] = []
+      for filename in filename_list:
+        entry = self.entry_list[ arch ][ filename ]
+        ( package, version, _ ) = _splitFileName( filename )
+        if package not in data:
+          data[ package ] = []
 
-            data[ package ].append( {
-                                      'version': version,
-                                      'path': entry[0],
-                                      'type': entry[1],
-                                      'sha1': entry[2],
-                                      'sha256': entry[3],
-                                      'md5': entry[4],
-                                      'size': entry[5]
-                                     } )
+        data[ package ].append( {
+                                  'version': version,
+                                  'path': entry[0],
+                                  'type': entry[1],
+                                  'sha1': entry[2],
+                                  'sha256': entry[3],
+                                  'md5': entry[4],
+                                  'size': entry[5]
+                                 } )
 
-          wrk = open( '{0}/MANIFEST_{1}-{2}-{3}.json'.format( base_path, distro, distro_version, arch ), 'w' )
-          wrk.write( json.dumps( data, indent=2, sort_keys=True ) )
-          wrk.close()
+      wrk = open( '{0}/MANIFEST_{1}.json'.format( base_path, arch ), 'w' )
+      wrk.write( json.dumps( data, indent=2, sort_keys=True ) )
+      wrk.close()
 
     if self.gpg_key:
       ctx = gpgme.Context()
@@ -149,15 +139,13 @@ class JSONManager( LocalRepoManager ):
 
       base_path = '{0}/_repo_{1}'.format( self.root_dir, self.component )
 
-      for distro in self.entry_list:
-        for distro_version in self.entry_list[ distro ]:
-          for arch in self.entry_list[ distro ][ distro_version ]:
-            logging.info( 'json: Signing distro %s, distro version %s, arch %s', distro, distro_version, arch )
+      for arch in self.arch_list:
+        logging.info( 'json: Signing "%s"', arch )
 
-            plain = open( '{0}/MANIFEST_{1}-{2}-{3}.json'.format( base_path, distro, distro_version, arch ), 'r' )
-            sign = open( '{0}/MANIFEST_{1}-{2}-{3}.json.gpg'.format( base_path, distro, distro_version, arch ), 'w' )
+        plain = open( '{0}/MANIFEST_{1}.json'.format( base_path, arch ), 'rb' )
+        sign = open( '{0}/MANIFEST_{1}.json.gpg'.format( base_path, arch ), 'wb' )
 
-            ctx.sign( plain, sign, gpgme.SIG_MODE_DETACH )
+        ctx.sign( plain, sign, gpgme.SIG_MODE_DETACH )
 
-            plain.close()
-            sign.close()
+        plain.close()
+        sign.close()
