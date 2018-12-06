@@ -2,11 +2,11 @@ all:
 	./setup.py build
 
 install:
-	mkdir -p $(DESTDIR)/usr/sbin
+	mkdir -p $(DESTDIR)/usr/bin
 	mkdir -p $(DESTDIR)/etc/packrat
 	mkdir -p $(DESTDIR)/etc/apache2/sites-available
 
-	install -m 755 sbin/packrat-agent $(DESTDIR)/usr/sbin
+	install -m 755 bin/packrat-agent $(DESTDIR)/usr/bin
 	install -m 644 mirror.conf.sample $(DESTDIR)/etc/packrat/mirror.conf
 	install -m 644 apache.conf $(DESTDIR)/etc/apache2/sites-available/repo.conf
 
@@ -16,22 +16,28 @@ clean:
 	./setup.py clean
 	$(RM) -fr build
 	$(RM) -f dpkg
-	dh_clean
+	dh_clean || true
+
+dist-clean: clean
+
+.PHONY:: all install clean dist-clean
 
 test-distros:
-	echo xenial
+	echo ubuntu-xenial
 
 test-requires:
-	echo python3 python3-dateutil python3-pip python3-pytest python3-pytest-cov python3-cinp
+	echo flake8 python3 python3-dateutil python3-pip python3-pytest python3-pytest-cov python3-cinp
 
-test-setup:
-	pip3 install -e .
+lint:
+	flake8 --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .
 
 test:
 	py.test-3 -x --cov=packratAgent --cov-report html --cov-report term  -vv packratAgent
 
+.PHONY:: test-distrostest-requires lint test
+
 dpkg-distros:
-	echo xenial
+	echo ubuntu-xenial
 
 dpkg-requires:
 	echo dpkg-dev debhelper cdbs python3-dev python3-setuptools
@@ -43,4 +49,4 @@ dpkg:
 dpkg-file:
 	@echo $(shell ls ../packrat-agent_*.deb):xenial
 
-.PHONY: all install clean dpkg-distros dpkg-requires dpkg-file
+.PHONY:: dpkg-distros dpkg-requires dpkg-file
