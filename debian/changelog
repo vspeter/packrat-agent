@@ -1,8 +1,14 @@
+packrat-agent (0.10-1) xenial; urgency=medium
+
+  * removed init.d and added service
+
+ -- Peter <peter.howe@virtustream.com>  Thu, 06 Dec 2018 09:47:17 -0700
+
 packrat-agent (0.9-1) xenial; urgency=medium
 
   * Restored YUM Support
 
- -- Peter <peter@xps13-01>  Tue, 12 Jun 2018 12:17:38 -0600
+ -- Peter <peter.howe@virtustream.com>  Tue, 12 Jun 2018 12:17:38 -0600
 
 packrat-agent (0.8-1) xenial; urgency=medium
 

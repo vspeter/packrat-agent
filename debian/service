@@ -1,0 +1,10 @@
+[Unit]
+Description=Packrat Agent
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/packrat-agent interactive
+
+[Install]
+WantedBy=mutli-user.target

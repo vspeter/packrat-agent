@@ -51,8 +51,6 @@ def _make_manifest( container_name, entry, tag_override=None ):
 
   signatures = []  # https://github.com/docker/libtrust/blob/master/jsonsign.go
   signatures.append( {
-                        #'header': { 'a': 'b' },
-                        #'signature': 'asdfasdfasd',
                         'protected': protected
                       } )
 
