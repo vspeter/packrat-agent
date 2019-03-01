@@ -1,3 +1,9 @@
+packrat-agent (2.0-1) xenial; urgency=medium
+
+  * Protocol version 2.0
+
+ -- Peter Howe <peter.howe@virtustream.com>  Fri, 01 Mar 2019 04:19:39 -0700
+
 packrat-agent (0.10-1) xenial; urgency=medium
 
   * removed init.d and added service
