@@ -63,7 +63,7 @@ class PackratAgent( Daemon ):
         logging.critical( 'Error opening config file' )
         return False
 
-    except:
+    except Exception:
       logging.exception( 'Error Parsing config file' )
       return False
 

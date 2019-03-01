@@ -6,25 +6,19 @@ import json
 
 from packratAgent.LocalRepoManager import LocalRepoManager, hashFile
 
-FILE_SUFIX_TYPES = {
-                      'tar': ( '.tar.gz', '.tar.bz2', '.tar.xz' ),
-                      'image': ( 'img.gz', 'img.bz2', 'img.xz' ),
-                      'respkg': ( 'respkg', )
-                   }
+
+OTHER_TYPES = ( 'tar', 'img' )
 
 
+# get this info from packrat, no point in re-parsing everything, update the other managers too, for them need to do a little comparing
 def _splitFileName( filename ):  # compare with packrat/Repos/Resource.py -> load
   filename = os.path.basename( filename )
 
   if filename.endswith( ( '.tar.gz', '.tar.bz2', '.tar.xz', 'img.gz', 'img.bz2', 'img.xz' ) ):
-    ( filename, extension, extension2 ) = filename.rsplit( '.', 2 )
-    extension = '{0}.{1}'.format( extension, extension2 )
+    ( filename, _, _ ) = filename.rsplit( '.', 2 )
 
   else:
-    try:
-      ( filename, extension ) = filename.rsplit( '.', 1 )
-    except ValueError:
-      extension = None
+    ( filename, _ ) = filename.rsplit( '.', 1 )
 
   try:
     ( package, version ) = filename.split( '_' )
@@ -32,18 +26,7 @@ def _splitFileName( filename ):  # compare with packrat/Repos/Resource.py -> loa
     package = filename
     version = None
 
-  return ( package, version, extension )
-
-
-def _getType( type, filename ):
-  if type != 'rsc':  # packrat sent us something special, keep it
-    return type
-
-  for item in FILE_SUFIX_TYPES:
-    if filename.endswith( FILE_SUFIX_TYPES[ item ] ):
-      return item
-
-  return type
+  return ( package, version )
 
 
 class JSONManager( LocalRepoManager ):
@@ -53,7 +36,7 @@ class JSONManager( LocalRepoManager ):
     self.entry_list = {}
 
   def filePaths( self, filename, distro, distro_version, arch ):
-    ( package, version, _ ) = _splitFileName( filename )
+    ( package, version ) = _splitFileName( filename )
     return [ os.path.join( self.root_dir, package, filename ) ]
 
   def metadataFiles( self ):
@@ -67,18 +50,16 @@ class JSONManager( LocalRepoManager ):
 
   def addEntry( self, type, filename, distro, distro_version, arch ):
     logging.debug( 'json: Got Entry for package: "%s" arch: "%s"', filename, arch )
-    ( package, _, _ ) = _splitFileName( filename )
+    ( package, _ ) = _splitFileName( filename )
     file_path = os.path.join( package, filename )
     full_file_path = os.path.join( self.root_dir, file_path )
     size = os.path.getsize( full_file_path )
-    ( sha1, sha256, md5 ) = hashFile( full_file_path )
+    ( _, sha256, _ ) = hashFile( full_file_path )
 
     if arch not in self.entry_list:
       self.entry_list[ arch ] = {}
 
-    type = _getType( type, filename )  # the type we get here is passed down from packrat, which usually is generic, we need to get more specific
-
-    self.entry_list[ arch ][ filename ] = ( file_path, type, sha1, sha256, md5, size )
+    self.entry_list[ arch ][ filename ] = ( file_path, type, sha256, size )
 
   def removeEntry( self, filename, distro, distro_version, arch ):
     try:
@@ -87,7 +68,7 @@ class JSONManager( LocalRepoManager ):
       logging.warning( 'json: unable to remove entry "%s" "%s", ignored.', filename, arch )
 
   def loadFile( self, filename, temp_file, distro, distro_version, arch ):
-    ( package, _, _ ) = _splitFileName( filename )
+    ( package, _ ) = _splitFileName( filename )
     dir_path = '{0}/{1}/'.format( self.root_dir, package )
 
     if not os.path.exists( dir_path ):
@@ -112,7 +93,7 @@ class JSONManager( LocalRepoManager ):
 
       for filename in filename_list:
         entry = self.entry_list[ arch ][ filename ]
-        ( package, version, _ ) = _splitFileName( filename )
+        ( package, version ) = _splitFileName( filename )
         if package not in data:
           data[ package ] = []
 
@@ -120,10 +101,8 @@ class JSONManager( LocalRepoManager ):
                                   'version': version,
                                   'path': entry[0],
                                   'type': entry[1],
-                                  'sha1': entry[2],
-                                  'sha256': entry[3],
-                                  'md5': entry[4],
-                                  'size': entry[5]
+                                  'sha256': entry[2],
+                                  'size': entry[3]
                                  } )
 
       wrk = open( '{0}/MANIFEST_{1}.json'.format( base_path, arch ), 'w' )

@@ -15,7 +15,7 @@ class PackratException( Exception ):
   pass
 
 
-PACKRAT_API_VERSION = '1.5'
+PACKRAT_API_VERSION = '2.0'
 DOWNLOAD_TMP_DIR = '/tmp/packratAgent'
 
 """
@@ -45,13 +45,13 @@ class Packrat():
       else:
         raise e
 
-    self.cinp = client.CInP( host, '/api/v1/', proxy )
+    self.cinp = client.CInP( host, '/api/v2/', proxy )
     # self.token = self.cinp.call( '/api/v1/Auth(login)', { 'username': name, 'password': psk } )[ 'value' ]
     # self.cinp.setAuth( name, self.token )
     # self.keepalive = KeepAlive( self.cinp )
     # self.keepalive.start()
     self.name = name
-    root = self.cinp.describe( '/api/v1/Repo' )
+    root = self.cinp.describe( '/api/v2/' )
     if root[ 'api-version' ] != PACKRAT_API_VERSION:
       raise PackratException( 'Expected API version "{0}" found "{1}"'.format( PACKRAT_API_VERSION, root[ 'api-version' ] ) )
 
@@ -61,10 +61,10 @@ class Packrat():
     return self.cinp.getFile( url, target_dir=DOWNLOAD_TMP_DIR, timeout=timeout )
 
   def getMirror( self ):
-    return self.cinp.get( '/api/v1/Repo/Mirror:{0}:'.format( self.name ) )
+    return self.cinp.get( '/api/v2/Repo/Mirror:{0}:'.format( self.name ) )
 
   def heartbeat( self ):
-    self.cinp.call( '/api/v1/Repo/Mirror:{0}:(heartbeat)'.format( self.name ), {} )
+    self.cinp.call( '/api/v2/Repo/Mirror:{0}:(heartbeat)'.format( self.name ), {} )
 
   def getRepos( self, repo_uri_list ):  # TODO: make sure it is a repo URI
     return self.cinp.getMulti( repo_uri_list )
@@ -74,14 +74,14 @@ class Packrat():
 
   def getPackageFiles( self, repo_uri, package_list=None ):
     result = {}
-    for key, value in self.cinp.getFilteredObjects( '/api/v1/Repo/PackageFile', 'repo', { 'repo': repo_uri, 'package_list': package_list } ):
+    for key, value in self.cinp.getFilteredObjects( '/api/v2/Package/PackageFile', 'repo', { 'repo': repo_uri, 'package_list': package_list } ):
       result[ key ] = value
 
     return result
 
   def getDistroVersions( self ):
     result = {}
-    for key, value in self.cinp.getFilteredObjects( '/api/v1/Repo/DistroVersion' ):
+    for key, value in self.cinp.getFilteredObjects( '/api/v2/Attrib/DistroVersion' ):
       result[ key ] = value
 
     return result

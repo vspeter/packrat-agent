@@ -1,3 +1,5 @@
+VERSION := $(shell head -n 1 debian/changelog | awk '{match( $$0, /\(.+?\)/); print substr( $$0, RSTART+1, RLENGTH-2 ) }' | cut -d- -f1 )
+
 all:
 	./setup.py build
 
@@ -11,6 +13,9 @@ install:
 	install -m 644 apache.conf $(DESTDIR)/etc/apache2/sites-available/repo.conf
 
 	./setup.py install --root $(DESTDIR) --install-purelib=/usr/lib/python3/dist-packages/ --prefix=/usr --no-compile -O0
+
+version:
+	echo $(VERSION)
 
 clean:
 	./setup.py clean
