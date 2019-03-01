@@ -116,7 +116,7 @@ class Daemon():
     logging.debug( 'libdaemon: Deleting "%s"...', self.pidfile )
     try:
       os.unlink( self.pidfile )
-    except:
+    except Exception:
       pass
 
   def _sigHandler( self, sig, frame ):
@@ -177,7 +177,7 @@ class Daemon():
       try:
         self.main()
         rc = True
-      except:
+      except Exception:
         logging.exception( 'libdaemon: Exception in main' )
         rc = False
         break
